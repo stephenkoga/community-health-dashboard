@@ -3,327 +3,141 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Community Health Program – Live Dashboard</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<title>Community Health Program – Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
-
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --navy:   #0D2137;
-    --blue1:  #1A3A5C;
-    --blue2:  #1F618D;
-    --blue3:  #2471A3;
-    --teal1:  #0E6655;
-    --teal2:  #117A65;
-    --teal3:  #1ABC9C;
-    --accent: #E67E22;
-    --red:    #C0392B;
-    --green:  #1E8449;
-    --white:  #FFFFFF;
-    --bg:     #F0F4F8;
-    --card:   #FFFFFF;
-    --border: #DDE3EA;
-    --text:   #1C2B3A;
-    --muted:  #6B7A8D;
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --navy:#0D2137;--blue1:#1A3A5C;--blue2:#1F618D;--blue3:#2471A3;
+    --teal1:#0E6655;--teal2:#117A65;--teal3:#1ABC9C;
+    --accent:#E67E22;--red:#C0392B;--green:#1E8449;
+    --bg:#F0F4F8;--card:#FFFFFF;--border:#DDE3EA;--text:#1C2B3A;--muted:#6B7A8D;
   }
-
-  html { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
-
-  #upload-screen {
-    min-height: 100vh; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; padding: 32px;
-    background: linear-gradient(135deg, var(--navy) 0%, #0a3055 60%, #0e4d6e 100%);
-  }
-  .upload-logo { font-size: 48px; margin-bottom: 16px; }
-  .upload-title { font-size: 26px; font-weight: 700; color: #fff; text-align: center; margin-bottom: 6px; }
-  .upload-sub   { font-size: 13px; color: #8faec8; text-align: center; margin-bottom: 40px; }
-  .upload-grid  { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; max-width: 700px; margin-bottom: 28px; }
-  .upload-card  {
-    background: rgba(255,255,255,0.07); border: 2px dashed rgba(255,255,255,0.25);
-    border-radius: 14px; padding: 28px 20px; text-align: center; cursor: pointer;
-    transition: all .2s; position: relative; overflow: hidden;
-  }
-  .upload-card:hover { background: rgba(255,255,255,0.13); border-color: var(--teal3); }
-  .upload-card.loaded { border-color: var(--teal3); background: rgba(26,188,156,0.12); }
-  .upload-card input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-  .upload-card-icon  { font-size: 32px; margin-bottom: 10px; }
-  .upload-card-label { font-size: 12px; font-weight: 600; color: #8faec8; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }
-  .upload-card-name  { font-size: 13px; color: #fff; font-weight: 500; min-height: 20px; }
-  .upload-card-status{ font-size: 11px; color: var(--teal3); margin-top: 4px; }
-  .btn-load {
-    padding: 14px 48px; background: var(--teal2); color: #fff;
-    font-size: 15px; font-weight: 600; border: none; border-radius: 10px;
-    cursor: pointer; transition: background .2s; opacity: .4; pointer-events: none;
-  }
-  .btn-load.ready { opacity: 1; pointer-events: all; }
-  .btn-load.ready:hover { background: var(--teal1); }
-  .upload-note { font-size: 11px; color: #5a7a96; margin-top: 14px; text-align: center; }
-
-  #dashboard { display: none; }
-
-  .top-bar {
-    background: var(--navy); padding: 0 28px;
-    display: flex; align-items: center; justify-content: space-between;
-    height: 58px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 12px rgba(0,0,0,.25);
-  }
-  .top-bar-left  { display: flex; align-items: center; gap: 12px; }
-  .top-bar-title { font-size: 15px; font-weight: 700; color: #fff; letter-spacing: .02em; }
-  .top-bar-sub   { font-size: 11px; color: #5a7a96; }
-  .top-bar-right { display: flex; align-items: center; gap: 10px; }
-  .badge { background: rgba(26,188,156,.2); color: var(--teal3); font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; }
-  .btn-reload { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15); color: #ccc; font-size: 12px; padding: 6px 14px; border-radius: 7px; cursor: pointer; transition: all .2s; }
-  .btn-reload:hover { background: rgba(255,255,255,.15); color: #fff; }
-
-  .dash-body { padding: 24px 28px; max-width: 1400px; margin: 0 auto; }
-
-  .kpi-strip { display: grid; grid-template-columns: repeat(5,1fr); gap: 14px; margin-bottom: 24px; }
-  .kpi-card  {
-    background: var(--card); border-radius: 12px; padding: 18px 20px;
-    border-left: 4px solid var(--blue2); box-shadow: 0 1px 4px rgba(0,0,0,.06);
-    position: relative; overflow: hidden;
-  }
-  .kpi-card::after {
-    content: attr(data-icon); position: absolute; right: 14px; top: 12px;
-    font-size: 26px; opacity: .15;
-  }
-  .kpi-label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }
-  .kpi-value { font-size: 32px; font-weight: 700; color: var(--text); line-height: 1; }
-  .kpi-sub   { font-size: 11px; color: var(--muted); margin-top: 4px; }
-
-  .section-title {
-    font-size: 11px; font-weight: 700; color: var(--muted);
-    text-transform: uppercase; letter-spacing: .1em;
-    margin: 28px 0 14px; padding-bottom: 8px; border-bottom: 2px solid var(--border);
-    display: flex; align-items: center; gap: 8px;
-  }
-  .section-title span { font-size: 16px; }
-
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; }
-  .grid-32{ display: grid; grid-template-columns: 3fr 2fr; gap: 18px; }
-  .grid-23{ display: grid; grid-template-columns: 2fr 3fr; gap: 18px; }
-
-  .card { background: var(--card); border-radius: 12px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
-  .card-title { font-size: 12px; font-weight: 700; color: var(--navy); margin-bottom: 16px; display: flex; align-items: center; gap: 6px; }
-  .card-title .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-
-  .perf-row { display: flex; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); gap: 10px; }
-  .perf-row:last-child { border-bottom: none; }
-  .perf-label { flex: 1; font-size: 12px; color: var(--text); }
-  .perf-pct   { font-size: 13px; font-weight: 700; width: 46px; text-align: right; }
-  .perf-bar-bg { flex: 1; height: 7px; background: #e8ecf0; border-radius: 4px; overflow: hidden; }
-  .perf-bar-fill { height: 100%; border-radius: 4px; transition: width .6s ease; }
-
-  .sub-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  .sub-table th { background: var(--blue1); color: #fff; padding: 8px 10px; text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
-  .sub-table th:not(:first-child) { text-align: center; }
-  .sub-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
-  .sub-table tr:hover td { background: #f5f8fb; }
-  .sub-table td:not(:first-child) { text-align: center; font-family: 'DM Mono', monospace; }
-  .sub-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
-  .mini-bar-bg { display: inline-block; width: 60px; height: 6px; background: #e8ecf0; border-radius: 3px; vertical-align: middle; position: relative; }
-  .mini-bar-fill { position: absolute; left: 0; top: 0; height: 100%; border-radius: 3px; }
-
-  .cha-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  .cha-table th { background: var(--teal1); color: #fff; padding: 8px 10px; text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
-  .cha-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
-  .cha-table tr:hover td { background: #f0faf7; }
-  .cha-table td:not(:first-child) { text-align: center; font-family: 'DM Mono', monospace; font-size: 12px; }
-  .chip { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
-  .chip-blue  { background: #dbeafe; color: var(--blue2); }
-  .chip-teal  { background: #d1faf0; color: var(--teal1); }
-  .chip-gray  { background: #e9ecef; color: var(--muted); }
-  .chip-both  { background: #fef3c7; color: #92400e; }
-
-  .sat-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-  .sat-label { font-size: 12px; width: 110px; flex-shrink: 0; font-weight: 500; }
-  .sat-bar-bg { flex: 1; height: 22px; background: #e8ecf0; border-radius: 6px; overflow: hidden; }
-  .sat-bar-fill { height: 100%; border-radius: 6px; display: flex; align-items: center; padding-left: 8px; font-size: 11px; font-weight: 600; color: #fff; transition: width .7s ease; }
-  .sat-count { font-size: 12px; font-family: 'DM Mono', monospace; width: 50px; text-align: right; color: var(--muted); }
-
-  .svc-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
-  .svc-label { font-size: 12px; width: 150px; flex-shrink: 0; }
-  .svc-bar-bg { flex: 1; height: 18px; background: #e8ecf0; border-radius: 5px; overflow: hidden; }
-  .svc-bar-fill { height: 100%; border-radius: 5px; display: flex; align-items: center; padding-left: 8px; font-size: 10px; font-weight: 600; color: #fff; min-width: 30px; }
-  .svc-pct { font-size: 11px; font-family: 'DM Mono', monospace; width: 40px; text-align: right; color: var(--muted); }
-
-  .chart-wrap { position: relative; height: 240px; }
-  .chart-wrap-sm { position: relative; height: 190px; }
-
-  .summary-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-  .pill { background: var(--bg); border: 1px solid var(--border); border-radius: 20px; padding: 5px 14px; font-size: 11px; color: var(--muted); }
-  .pill strong { color: var(--text); }
-
-  .table-scroll { overflow-y: auto; max-height: 380px; }
-  .table-scroll::-webkit-scrollbar { width: 4px; }
-  .table-scroll::-webkit-scrollbar-track { background: transparent; }
-  .table-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-  .dash-footer { text-align: center; padding: 24px; font-size: 11px; color: var(--muted); border-top: 1px solid var(--border); margin-top: 32px; }
-
-  @media (max-width: 900px) {
-    .kpi-strip { grid-template-columns: repeat(3,1fr); }
-    .grid-2, .grid-32, .grid-23 { grid-template-columns: 1fr; }
-    .dash-body { padding: 16px; }
-  }
-  @media (max-width: 600px) {
-    .kpi-strip { grid-template-columns: 1fr 1fr; }
-    .upload-grid { grid-template-columns: 1fr; }
-  }
-
-  @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
-  .fade-up { animation: fadeUp .4s ease both; }
-  .fade-up:nth-child(2) { animation-delay: .05s; }
-  .fade-up:nth-child(3) { animation-delay: .1s;  }
-  .fade-up:nth-child(4) { animation-delay: .15s; }
-  .fade-up:nth-child(5) { animation-delay: .2s;  }
+  html{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+  .top-bar{background:var(--navy);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:58px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25)}
+  .top-bar-left{display:flex;align-items:center;gap:12px}
+  .top-bar-title{font-size:15px;font-weight:700;color:#fff;letter-spacing:.02em}
+  .top-bar-sub{font-size:11px;color:#5a7a96}
+  .top-bar-right{display:flex;align-items:center;gap:10px}
+  .badge{background:rgba(26,188,156,.2);color:var(--teal3);font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px}
+  .dash-body{padding:24px 28px;max-width:1400px;margin:0 auto}
+  .kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px}
+  .kpi-card{background:var(--card);border-radius:12px;padding:18px 20px;border-left:4px solid var(--blue2);box-shadow:0 1px 4px rgba(0,0,0,.06);position:relative;overflow:hidden}
+  .kpi-card::after{content:attr(data-icon);position:absolute;right:14px;top:12px;font-size:26px;opacity:.15}
+  .kpi-label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+  .kpi-value{font-size:32px;font-weight:700;line-height:1}
+  .kpi-sub{font-size:11px;color:var(--muted);margin-top:4px}
+  .section-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin:28px 0 14px;padding-bottom:8px;border-bottom:2px solid var(--border);display:flex;align-items:center;gap:8px}
+  .section-title span{font-size:16px}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
+  .grid-32{display:grid;grid-template-columns:3fr 2fr;gap:18px}
+  .grid-23{display:grid;grid-template-columns:2fr 3fr;gap:18px}
+  .card{background:var(--card);border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+  .card-title{font-size:12px;font-weight:700;color:var(--navy);margin-bottom:16px;display:flex;align-items:center;gap:6px}
+  .card-title .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+  .perf-row{display:flex;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);gap:10px}
+  .perf-row:last-child{border-bottom:none}
+  .perf-label{flex:1;font-size:12px;color:var(--text)}
+  .perf-pct{font-size:13px;font-weight:700;width:46px;text-align:right}
+  .perf-bar-bg{flex:1;height:7px;background:#e8ecf0;border-radius:4px;overflow:hidden}
+  .perf-bar-fill{height:100%;border-radius:4px}
+  .sub-table{width:100%;border-collapse:collapse;font-size:12px}
+  .sub-table th{background:var(--blue1);color:#fff;padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+  .sub-table th:not(:first-child){text-align:center}
+  .sub-table td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+  .sub-table tr:hover td{background:#f5f8fb}
+  .sub-table td:not(:first-child){text-align:center;font-family:'DM Mono',monospace}
+  .sub-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+  .mini-bar-bg{display:inline-block;width:60px;height:6px;background:#e8ecf0;border-radius:3px;vertical-align:middle;position:relative}
+  .mini-bar-fill{position:absolute;left:0;top:0;height:100%;border-radius:3px}
+  .cha-table{width:100%;border-collapse:collapse;font-size:12px}
+  .cha-table th{background:var(--teal1);color:#fff;padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+  .cha-table td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+  .cha-table tr:hover td{background:#f0faf7}
+  .cha-table td:not(:first-child){text-align:center;font-family:'DM Mono',monospace;font-size:12px}
+  .chip{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
+  .chip-blue{background:#dbeafe;color:var(--blue2)}
+  .chip-teal{background:#d1faf0;color:var(--teal1)}
+  .chip-both{background:#fef3c7;color:#92400e}
+  .sat-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .sat-label{font-size:12px;width:120px;flex-shrink:0;font-weight:500}
+  .sat-bar-bg{flex:1;height:22px;background:#e8ecf0;border-radius:6px;overflow:hidden}
+  .sat-bar-fill{height:100%;border-radius:6px;display:flex;align-items:center;padding-left:8px;font-size:11px;font-weight:600;color:#fff}
+  .sat-count{font-size:12px;font-family:'DM Mono',monospace;width:50px;text-align:right;color:var(--muted)}
+  .svc-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+  .svc-label{font-size:12px;width:150px;flex-shrink:0}
+  .svc-bar-bg{flex:1;height:18px;background:#e8ecf0;border-radius:5px;overflow:hidden}
+  .svc-bar-fill{height:100%;border-radius:5px;display:flex;align-items:center;padding-left:8px;font-size:10px;font-weight:600;color:#fff;min-width:30px}
+  .svc-pct{font-size:11px;font-family:'DM Mono',monospace;width:40px;text-align:right;color:var(--muted)}
+  .chart-wrap{position:relative;height:240px}
+  .chart-wrap-sm{position:relative;height:190px}
+  .summary-pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+  .pill{background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:5px 14px;font-size:11px;color:var(--muted)}
+  .pill strong{color:var(--text)}
+  .table-scroll{overflow-y:auto;max-height:380px}
+  .table-scroll::-webkit-scrollbar{width:4px}
+  .table-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+  .dash-footer{text-align:center;padding:24px;font-size:11px;color:var(--muted);border-top:1px solid var(--border);margin-top:32px}
+  .last-updated{font-size:11px;color:var(--teal3);background:rgba(26,188,156,.1);padding:6px 14px;border-radius:20px}
+  @media(max-width:900px){.kpi-strip{grid-template-columns:repeat(3,1fr)}.grid-2,.grid-32,.grid-23{grid-template-columns:1fr}.dash-body{padding:16px}}
+  @media(max-width:600px){.kpi-strip{grid-template-columns:1fr 1fr}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+  .fade-up{animation:fadeUp .4s ease both}
+  .fade-up:nth-child(2){animation-delay:.05s}
+  .fade-up:nth-child(3){animation-delay:.1s}
+  .fade-up:nth-child(4){animation-delay:.15s}
+  .fade-up:nth-child(5){animation-delay:.2s}
 </style>
 </head>
 <body>
-
-<div id="upload-screen">
-  <div class="upload-logo">🏥</div>
-  <div class="upload-title">Community Health Program Dashboard</div>
-  <div class="upload-sub">Upload both data files to generate your live dashboard · Homa Bay County</div>
-
-  <div class="upload-grid">
-    <div class="upload-card" id="card-shadow" onclick="document.getElementById('file-shadow').click()">
-      <input type="file" id="file-shadow" accept=".xlsx,.xls" onchange="handleFile('shadow',this)"/>
-      <div class="upload-card-icon">📋</div>
-      <div class="upload-card-label">File 1</div>
-      <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:4px;">Shadowing Tool</div>
-      <div class="upload-card-name" id="name-shadow">Click to upload .xlsx</div>
-      <div class="upload-card-status" id="status-shadow"></div>
-    </div>
-    <div class="upload-card" id="card-spot" onclick="document.getElementById('file-spot').click()">
-      <input type="file" id="file-spot" accept=".xlsx,.xls" onchange="handleFile('spot',this)"/>
-      <div class="upload-card-icon">✅</div>
-      <div class="upload-card-label">File 2</div>
-      <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:4px;">Spot Check Tool</div>
-      <div class="upload-card-name" id="name-spot">Click to upload .xlsx</div>
-      <div class="upload-card-status" id="status-spot"></div>
+<div class="top-bar">
+  <div class="top-bar-left">
+    <span style="font-size:20px">🏥</span>
+    <div>
+      <div class="top-bar-title">Community Health Program Dashboard</div>
+      <div class="top-bar-sub">Homa Bay County · Live Data</div>
     </div>
   </div>
-
-  <button class="btn-load" id="btn-load" onclick="buildDashboard()">Generate Dashboard →</button>
-  <div class="upload-note">Files are processed entirely in your browser · No data is uploaded to any server</div>
+  <div class="top-bar-right">
+    <span class="badge">June 2026</span>
+    <span class="last-updated" id="last-updated"></span>
+  </div>
 </div>
 
-<div id="dashboard">
-  <div class="top-bar">
-    <div class="top-bar-left">
-      <span style="font-size:20px;">🏥</span>
-      <div>
-        <div class="top-bar-title">Community Health Program Dashboard</div>
-        <div class="top-bar-sub" id="top-sub">Homa Bay County · June 2026</div>
-      </div>
-    </div>
-    <div class="top-bar-right">
-      <span class="badge" id="top-badge">Live Data</span>
-      <button class="btn-reload" onclick="resetDashboard()">↩ Upload New Files</button>
-    </div>
-  </div>
-
-  <div class="dash-body">
-    <div class="kpi-strip" id="kpi-strip"></div>
-    <div class="section-title"><span>📍</span> Activity by Subcounty & CHP Performance</div>
-    <div class="grid-32" id="row1"></div>
-    <div class="section-title"><span>📊</span> Household Feedback & Services Delivered</div>
-    <div class="grid-3" id="row2"></div>
-    <div class="section-title"><span>👥</span> CHA Activity Summary</div>
-    <div class="grid-23" id="row3"></div>
-    <div class="section-title"><span>📋</span> Detailed Tables</div>
-    <div class="grid-2" id="row4"></div>
-    <div class="dash-footer">
-      Homa Bay County Community Health Program &nbsp;·&nbsp; Shadowing Tool & Spot Check Tool &nbsp;·&nbsp;
-      Dashboard generated <span id="gen-time"></span> &nbsp;·&nbsp; All data processed locally in browser
-    </div>
+<div class="dash-body">
+  <div class="kpi-strip" id="kpi-strip"></div>
+  <div class="section-title"><span>📍</span> Activity by Subcounty & CHP Performance</div>
+  <div class="grid-32" id="row1"></div>
+  <div class="section-title"><span>📊</span> Household Feedback & Services Delivered</div>
+  <div class="grid-3" id="row2"></div>
+  <div class="section-title"><span>👥</span> CHA Activity Summary</div>
+  <div class="grid-23" id="row3"></div>
+  <div class="section-title"><span>📋</span> Detailed Tables</div>
+  <div class="grid-2" id="row4"></div>
+  <div class="dash-footer">
+    Homa Bay County Community Health Program &nbsp;·&nbsp;
+    Data as of June 2026 &nbsp;·&nbsp;
+    <span id="gen-time"></span>
   </div>
 </div>
 
 <script>
-let rawShadow = null, rawSpot = null;
-let charts = [];
+// ── EMBEDDED DATA ─────────────────────────────────────────────
+const SHADOW_DATA = [{"cha":"Barack Otieno Oguda","sub":"Ndhiwa"},{"cha":"Dola Victoria","sub":"Suba South"},{"cha":"Dency Opinde","sub":"Suba South"},{"cha":"Olang Milka","sub":"Rangwe"},{"cha":"Mercyline Odhiambo","sub":"Rangwe"},{"cha":"Pamela Agola","sub":"Ndhiwa"},{"cha":"Dency Opinde","sub":"Suba South"},{"cha":"Dency Opinde","sub":"Suba South"},{"cha":"Tabither Ogola","sub":"Rachuonyo North"},{"cha":"Emily Odhiambo","sub":"Rangwe"},{"cha":"Molly Apanja","sub":"Rangwe"},{"cha":"Diana Judith's Anyango","sub":"Rachuonyo North"},{"cha":"Calvine Wanyancha","sub":"Suba South"},{"cha":"Calvine Wanyancha","sub":"Suba South"},{"cha":"Diana Judith's Anyango","sub":"Rachuonyo North"},{"cha":"Edwin Okumu","sub":"Rangwe"},{"cha":"Diana Judith's Anyango","sub":"Rachuonyo North"},{"cha":"Jane Atieno Otae","sub":"Rachuonyo North"},{"cha":"Jane Atieno Otae","sub":"Rachuonyo North"},{"cha":"Jane Atieno Otae","sub":"Rachuonyo North"},{"cha":"Diana Judith's Anyango","sub":"Rachuonyo North"},{"cha":"Diana Judith's Anyango","sub":"Rachuonyo North"},{"cha":"Ebby Kabasa","sub":"Rachuonyo North"},{"cha":"Diana Judith's Anyango","sub":"Rachuonyo North"},{"cha":"Calvine Wanyancha","sub":"Suba South"},{"cha":"Calvine Wanyancha","sub":"Suba South"},{"cha":"Calvine Wanyancha","sub":"Suba South"},{"cha":"Olang Milka","sub":"Rangwe"},{"cha":"Calvine Wanyancha","sub":"Suba South"},{"cha":"Calcince Wanyach","sub":"Suba South"},{"cha":"Penina Omuga","sub":"Rachuonyo North"},{"cha":"Calvine Wanyancha","sub":"Suba South"},{"cha":"Calvine Wanyancha","sub":"Suba South"},{"cha":"Penina Omuga","sub":"Rachuonyo North"},{"cha":"Joan Nyongesa","sub":"Ndhiwa"},{"cha":"Everlyne Okoth","sub":"Suba North"},{"cha":"Penina Omuga","sub":"Rachuonyo North"},{"cha":"Pauline Aketch","sub":"Homa Bay Town"},{"cha":"Penina Omuga","sub":"Rachuonyo North"},{"cha":"Penina Omuga","sub":"Rachuonyo North"},{"cha":"Penina Omuga","sub":"Rachuonyo North"},{"cha":"Pauline Aketch","sub":"Homa Bay Town"},{"cha":"Elector Okoyo","sub":"Rachuonyo North"},{"cha":"Elector Okoyo","sub":"Rachuonyo North"},{"cha":"Penina Omuga","sub":"Rachuonyo North"},{"cha":"Penina Omuga","sub":"Rachuonyo North"},{"cha":"Elector Okoyo","sub":"Rachuonyo North"},{"cha":"Mercelyne Anyango","sub":"Suba North"},{"cha":"Larry Ogembo","sub":"Rachuonyo North"},{"cha":"Larry Ogembo","sub":"Rachuonyo North"},{"cha":"Elector Okoyo","sub":"Rachuonyo North"},{"cha":"Elvis Ernest","sub":"Suba North"},{"cha":"Diana Judith's Anyango","sub":"Rachuonyo North"},{"cha":"Diana Judith'S Anyango","sub":"Rachuonyo North"},{"cha":"Calvine Wanyancha","sub":"Suba South"},{"cha":"Calvine Wanyancha","sub":"Suba South"},{"cha":"Elector Okoyo","sub":"Rachuonyo North"},{"cha":"Stellar Matiku","sub":"Rachuonyo North"},{"cha":"Elector Okoyo","sub":"Rachuonyo North"},{"cha":"Goretty Obure","sub":"Rachuonyo North"},{"cha":"Stellar Matiku","sub":"Rachuonyo North"},{"cha":"Everlyne Okoth","sub":"Suba North"},{"cha":"Everlyne Okoth","sub":"Suba North"},{"cha":"Everlyne Okoth","sub":"Suba North"},{"cha":"Everlyne Okoth","sub":"Suba North"},{"cha":"Dency Opinde","sub":"Suba South"},{"cha":"Dency Opinde","sub":"Suba South"},{"cha":"Victor Odhiambo","sub":"Suba South"},{"cha":"Dency Opinde","sub":"Suba South"},{"cha":"Stellar Matiku","sub":"Rachuonyo North"},{"cha":"Tabither Awuor","sub":"Rachuonyo North"},{"cha":"Tabither Awuor","sub":"Rachuonyo North"},{"cha":"Monica Achieng Nguka","sub":"Suba North"},{"cha":"Monica Achieng Nguka","sub":"Suba North"},{"cha":"Lizzy Ayodo","sub":"Rachuonyo North"},{"cha":"Elector Okoyo","sub":"Rachuonyo North"},{"cha":"Lizzy Ayodo","sub":"Rachuonyo North"},{"cha":"Elector Okoyo","sub":"Rachuonyo North"},{"cha":"Jackline Achieng","sub":"Rangwe"},{"cha":"Mercy Opiyo","sub":"Suba North"},{"cha":"Lizzy Ayodo","sub":"Rachuonyo North"},{"cha":"Elector Okoyo","sub":"Rachuonyo North"},{"cha":"Florence Nyaoke","sub":"Suba South"},{"cha":"Elector Okoyo","sub":"Rachuonyo North"},{"cha":"Florence Nyaoke","sub":"Suba South"},{"cha":"Jackline Achieng","sub":"Rangwe"},{"cha":"Jackline Achieng","sub":"Rangwe"},{"cha":"Penina Omuga","sub":"Rachuonyo North"},{"cha":"Jackline Achieng","sub":"Rangwe"},{"cha":"Samantha Awuor","sub":"Rachuonyo North"},{"cha":"Penina Omuga","sub":"Rachuonyo North"},{"cha":"Lilian Aluoch Wagumba","sub":"Suba South"},{"cha":"Lilian Aluoch Wagumba","sub":"Suba South"},{"cha":"Penina Omuga","sub":"Rachuonyo North"},{"cha":"Penina Omuga","sub":"Rachuonyo North"},{"cha":"Penina Omuga","sub":"Rachuonyo North"},{"cha":"Penina Omuga","sub":"Rachuonyo North"},{"cha":"Florence Nyaoke","sub":"Suba South"},{"cha":"Lilian Aluoch Wagumba","sub":"Suba South"},{"cha":"Lilian Aluoch Wagumba","sub":"Suba South"},{"cha":"Lilian Aluoch Wagumba","sub":"Suba South"},{"cha":"Lilian Aluoch Wagumba","sub":"Suba South"},{"cha":"Monica Achieng Nguka","sub":"Suba North"},{"cha":"Elector Okoyo","sub":"Rachuonyo North"}];
+const SPOT_DATA   = [{"cha":"Pamela Agola","chp":"Elizabeth Ogweno","sub":"Ndhiwa","chu":"Rachar Community Health Unit","ward":"Kwabwai Ward","infoClr":true,"svcProv":true,"followUp":false,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Satisfied","effectiveness":"Very clear","childrenU5":false,"svcEdu":1,"svcHHV":1,"svcRef":0,"svcFol":0,"svcNut":0,"svcImm":0},{"cha":"Nelly Odinga","chp":"Eveline Akinyi Ocholla","sub":"Rachuonyo East","chu":"Koloo Health Community Health Unit","ward":"Kabondo West Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Satisfied","effectiveness":"Very clear","childrenU5":false,"svcEdu":1,"svcHHV":1,"svcRef":1,"svcFol":1,"svcNut":1,"svcImm":1},{"cha":"Nelly Odinga","chp":"Hellen Ouma","sub":"Rachuonyo East","chu":"Koloo Health Community Health Unit","ward":"Kabondo West Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":1,"svcFol":1,"svcNut":1,"svcImm":1},{"cha":"Villary Achieng Kunga","chp":"Anyango Doto Matrine","sub":"Rachuonyo North","chu":"Kamenya South Community Health Unit","ward":"Kanyaluo Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":1,"svcFol":1,"svcNut":1,"svcImm":1},{"cha":"Millicent Adoyo","chp":"Petronala Adoyo","sub":"Rachuonyo South","chu":"Kokal Community Health Unit","ward":"South Kasipul Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Satisfied","effectiveness":"Clear","childrenU5":false,"svcEdu":0,"svcHHV":1,"svcRef":0,"svcFol":1,"svcNut":0,"svcImm":0},{"cha":"Elizabeth Odida","chp":"Joash Okoko","sub":"Rachuonyo South","chu":"Obisa Community Health Unit","ward":"West Kamagak Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":0,"svcFol":0,"svcNut":1,"svcImm":1},{"cha":"Millicent Adoyo","chp":"Alfred Otieno Opiko","sub":"Rachuonyo South","chu":"Kokal Community Health Unit","ward":"South Kasipul Ward","infoClr":false,"svcProv":true,"followUp":false,"supplies":true,"protocols":false,"issues":true,"satisfaction":"Dissatisfied","effectiveness":"Not clear","childrenU5":false,"svcEdu":1,"svcHHV":1,"svcRef":0,"svcFol":0,"svcNut":0,"svcImm":0},{"cha":"Nelly Odinga","chp":"Rose Adongo","sub":"Rachuonyo East","chu":"Koloo Health Community Health Unit","ward":"Kabondo West Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":1,"svcFol":1,"svcNut":1,"svcImm":1},{"cha":"Millicent Adoyo","chp":"Margaret Oyoo","sub":"Rachuonyo South","chu":"Kokal Community Health Unit","ward":"South Kasipul Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":false,"svcEdu":0,"svcHHV":0,"svcRef":1,"svcFol":0,"svcNut":0,"svcImm":0},{"cha":"Nelly Odinga","chp":"Rose Adongo","sub":"Rachuonyo East","chu":"Koloo Health Community Health Unit","ward":"Kabondo West Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":1,"svcFol":1,"svcNut":1,"svcImm":1},{"cha":"Mourlyne Odhiambo","chp":"Rael Otieno","sub":"Suba North","chu":"Mbita Township B Community Health Unit","ward":"Kasgunga Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":true,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":false,"svcEdu":1,"svcHHV":1,"svcRef":1,"svcFol":0,"svcNut":1,"svcImm":0},{"cha":"Mourlyne Odhiambo","chp":"Jared Odhiambo","sub":"Suba North","chu":"Mbita Township B Community Health Unit","ward":"Kasgunga Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Clear","childrenU5":false,"svcEdu":1,"svcHHV":1,"svcRef":0,"svcFol":0,"svcNut":0,"svcImm":0},{"cha":"Mourlyne Odhiambo","chp":"Mildred Akoth","sub":"Suba North","chu":"Mbita Township B Community Health Unit","ward":"Kasgunga Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":true,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":false,"svcEdu":1,"svcHHV":1,"svcRef":0,"svcFol":0,"svcNut":0,"svcImm":0},{"cha":"Mourlyne Odhiambo","chp":"Mildred Akoth","sub":"Suba North","chu":"Mbita Township B Community Health Unit","ward":"Kasgunga Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":true,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":0,"svcFol":0,"svcNut":0,"svcImm":1},{"cha":"Mourlyne Odhiambo","chp":"Mildred Akoth","sub":"Suba North","chu":"Mbita Township B Community Health Unit","ward":"Kasgunga Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":true,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":0,"svcFol":0,"svcNut":0,"svcImm":1},{"cha":"Mourlyne Odhiambo","chp":"Mildred Akoth","sub":"Suba North","chu":"Mbita Township B Community Health Unit","ward":"Kasgunga Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":true,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":1,"svcFol":0,"svcNut":0,"svcImm":1},{"cha":"Mourlyne Odhiambo","chp":"Mildred Akoth","sub":"Suba North","chu":"Mbita Township B Community Health Unit","ward":"Kasgunga Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":true,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":1,"svcFol":0,"svcNut":1,"svcImm":1},{"cha":"Nelly Odinga","chp":"Teresa Aoko","sub":"Rachuonyo East","chu":"Koloo Health Community Health Unit","ward":"Kabondo West Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":1,"svcFol":1,"svcNut":1,"svcImm":1},{"cha":"Christabel Atieno Obunge","chp":"Christine Akoth","sub":"Rangwe","chu":"Kokoko Community Health Unit","ward":"Kagan Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":false,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Somewhat clear","childrenU5":false,"svcEdu":0,"svcHHV":1,"svcRef":0,"svcFol":0,"svcNut":0,"svcImm":0},{"cha":"Tabither Ogola","chp":"Amina Atieno","sub":"Rachuonyo North","chu":"Kojwang Community Health Unit","ward":"Kibiri Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":false,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":false,"svcEdu":1,"svcHHV":1,"svcRef":0,"svcFol":0,"svcNut":0,"svcImm":0},{"cha":"Tabither Ogola","chp":"Amina Atieno","sub":"Rachuonyo North","chu":"Kojwang Community Health Unit","ward":"Kibiri Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":false,"protocols":true,"issues":true,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":0,"svcHHV":0,"svcRef":0,"svcFol":0,"svcNut":0,"svcImm":1},{"cha":"Elizabeth Odida","chp":"Julia Atieno","sub":"Rachuonyo South","chu":"Obisa Community Health Unit","ward":"West Kamagak Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Satisfied","effectiveness":"Clear","childrenU5":false,"svcEdu":1,"svcHHV":1,"svcRef":0,"svcFol":0,"svcNut":1,"svcImm":0},{"cha":"Edwin Okumu","chp":"George Buong","sub":"Rangwe","chu":"Upper Korayo Community Health Unit","ward":"Kochia Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Satisfied","effectiveness":"Clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":0,"svcFol":0,"svcNut":1,"svcImm":1},{"cha":"Tabither Awuor","chp":"Amina Atieno","sub":"Rachuonyo North","chu":"Kojwang Community Health Unit","ward":"Kibiri Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":true,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":0,"svcFol":0,"svcNut":0,"svcImm":1},{"cha":"Elizabeth Odida","chp":"Julia Atieno","sub":"Rachuonyo South","chu":"Obisa Community Health Unit","ward":"West Kamagak Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Satisfied","effectiveness":"Clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":0,"svcFol":0,"svcNut":1,"svcImm":1},{"cha":"Elizabeth Odida","chp":"Julia Atieno","sub":"Rachuonyo South","chu":"Obisa Community Health Unit","ward":"West Kamagak Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Satisfied","effectiveness":"Clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":0,"svcFol":0,"svcNut":0,"svcImm":1},{"cha":"Christabel Atieno Obunge","chp":"Rose Apuoyo","sub":"Rangwe","chu":"Kokoko Community Health Unit","ward":"Kagan Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":false,"svcEdu":0,"svcHHV":0,"svcRef":0,"svcFol":1,"svcNut":0,"svcImm":0},{"cha":"Daisy Otieno","chp":"Phoebe Kabara","sub":"Rachuonyo East","chu":"Kamioro Community Health Unit","ward":"Kojwach Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":false,"protocols":true,"issues":false,"satisfaction":"Satisfied","effectiveness":"Very clear","childrenU5":false,"svcEdu":1,"svcHHV":1,"svcRef":1,"svcFol":1,"svcNut":1,"svcImm":1},{"cha":"Juliet Adoyo Peter","chp":"Lizzy Achiieng Ochieng","sub":"Suba North","chu":"Kasgunga East Community Health Unit","ward":"Kasgunga Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":0,"svcFol":1,"svcNut":1,"svcImm":0},{"cha":"Juliet Peter","chp":"Lizzy Achieng","sub":"Suba North","chu":"Kasgunga East Community Health Unit","ward":"Kasgunga Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Satisfied","effectiveness":"Clear","childrenU5":false,"svcEdu":1,"svcHHV":1,"svcRef":1,"svcFol":1,"svcNut":1,"svcImm":0},{"cha":"Pauline Aketch","chp":"Leah Achieng","sub":"Homa Bay Town","chu":"Kalanya Kanyango","ward":"Homa Bay Central Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":false,"protocols":true,"issues":false,"satisfaction":"Satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":0,"svcFol":1,"svcNut":1,"svcImm":1},{"cha":"Pauline Aketch","chp":"Leah Achieng","sub":"Homa Bay Town","chu":"Kalanya Kanyango","ward":"Homa Bay Central Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":false,"protocols":true,"issues":false,"satisfaction":"Satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":1,"svcFol":1,"svcNut":1,"svcImm":1},{"cha":"Pauline Aketch","chp":"Leah Achieng","sub":"Homa Bay Town","chu":"Kalanya Kanyango","ward":"Homa Bay Central Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":false,"protocols":true,"issues":true,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":1,"svcFol":1,"svcNut":1,"svcImm":1},{"cha":"Melada Okombo","chp":"Monica Odhiambo","sub":"Suba North","chu":"Waware North A Community Health Unit","ward":"Rusinga Island Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":false,"svcEdu":1,"svcHHV":1,"svcRef":1,"svcFol":1,"svcNut":1,"svcImm":0},{"cha":"Mauleen Achieng Ogunda","chp":"Rose Owuoth","sub":"Rachuonyo East","chu":"Kawere Community Health Unit","ward":"Kojwach Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":true,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":false,"svcEdu":1,"svcHHV":1,"svcRef":1,"svcFol":1,"svcNut":0,"svcImm":1},{"cha":"David Pande","chp":"Lilian Onditi","sub":"Rachuonyo East","chu":"Kakelo Kamroth A Health Community Unit","ward":"Kokwanyo/Kakelo Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Satisfied","effectiveness":"Clear","childrenU5":false,"svcEdu":1,"svcHHV":0,"svcRef":0,"svcFol":1,"svcNut":0,"svcImm":0},{"cha":"Stellar Matiku","chp":"Rufin Otula","sub":"Rachuonyo North","chu":"Kanyadhiang Community Health Unit","ward":"Kendu Bay Town Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Satisfied","effectiveness":"Clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":1,"svcFol":1,"svcNut":0,"svcImm":1},{"cha":"Nelly Odinga","chp":"Margaret Onyango","sub":"Rachuonyo East","chu":"Koloo Health Community Health Unit","ward":"Kabondo West Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":false,"protocols":true,"issues":false,"satisfaction":"Satisfied","effectiveness":"Clear","childrenU5":false,"svcEdu":1,"svcHHV":1,"svcRef":1,"svcFol":1,"svcNut":1,"svcImm":0},{"cha":"Winnie Achieng","chp":"Elly Juma","sub":"Rachuonyo South","chu":"Nyalenda West CU","ward":"Central Kasipul Ward","infoClr":true,"svcProv":true,"followUp":false,"supplies":false,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":1,"svcFol":1,"svcNut":1,"svcImm":1},{"cha":"Danga Beatrice","chp":"Serphine Otiende","sub":"Rachuonyo South","chu":"Kachieng ACommunity Health Unit","ward":"East Kamagak Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":0,"svcRef":0,"svcFol":1,"svcNut":0,"svcImm":1},{"cha":"Danga Beatrice","chp":"Serphine Otiende","sub":"Rachuonyo South","chu":"Kachieng ACommunity Health Unit","ward":"East Kamagak Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":0,"svcHHV":0,"svcRef":0,"svcFol":0,"svcNut":0,"svcImm":1},{"cha":"Winnie Achieng","chp":"Ann Akinyi","sub":"Rachuonyo South","chu":"Nyalenda West CU","ward":"Central Kasipul Ward","infoClr":true,"svcProv":true,"followUp":false,"supplies":true,"protocols":true,"issues":true,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":false,"svcEdu":1,"svcHHV":1,"svcRef":0,"svcFol":0,"svcNut":0,"svcImm":0},{"cha":"Tabither Awuor","chp":"Eucabeth","sub":"Rachuonyo North","chu":"Kojwang Community Health Unit","ward":"Kibiri Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":false,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":0,"svcFol":0,"svcNut":0,"svcImm":1},{"cha":"Tabither Awuor","chp":"Esther","sub":"Rachuonyo North","chu":"Kojwang Community Health Unit","ward":"Kibiri Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":false,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":false,"svcEdu":1,"svcHHV":1,"svcRef":0,"svcFol":0,"svcNut":0,"svcImm":0},{"cha":"Mourlyne Odhiambo","chp":"Real Akinyi","sub":"Suba North","chu":"Mbita Township B Community Health Unit","ward":"Kasgunga Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":true,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":1,"svcFol":1,"svcNut":0,"svcImm":0},{"cha":"Mourlyne Odhiambo","chp":"Real Akinyi","sub":"Suba North","chu":"Mbita Township B Community Health Unit","ward":"Kasgunga Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":0,"svcFol":1,"svcNut":0,"svcImm":0},{"cha":"Tabither Awuor","chp":"Esther Apiyo","sub":"Rachuonyo North","chu":"Kojwang Community Health Unit","ward":"Kibiri Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":0,"svcHHV":0,"svcRef":0,"svcFol":0,"svcNut":0,"svcImm":1},{"cha":"Claire Aloo","chp":"Beatrice Omondi","sub":"Rachuonyo South","chu":"Kamuma Community Health Unit","ward":"West Kamagak Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Clear","childrenU5":true,"svcEdu":0,"svcHHV":0,"svcRef":0,"svcFol":0,"svcNut":0,"svcImm":0},{"cha":"Claire Aloo","chp":"Lillian Yogo","sub":"Rachuonyo South","chu":"Kamuma Community Health Unit","ward":"West Kamagak Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":0,"svcHHV":0,"svcRef":0,"svcFol":0,"svcNut":0,"svcImm":0},{"cha":"Claire Aloo","chp":"Lillian Yogo","sub":"Rachuonyo South","chu":"Kamuma Community Health Unit","ward":"West Kamagak Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":0,"svcHHV":0,"svcRef":0,"svcFol":0,"svcNut":0,"svcImm":0},{"cha":"Claire Aloo","chp":"Lillian Yogo","sub":"Rachuonyo South","chu":"Kamuma Community Health Unit","ward":"West Kamagak Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":0,"svcHHV":0,"svcRef":0,"svcFol":0,"svcNut":0,"svcImm":0},{"cha":"Millicent Adoyo","chp":"Collins Ongweno","sub":"Rachuonyo South","chu":"Kanyango Community Health Unit","ward":"South Kasipul Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":true,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":0,"svcFol":0,"svcNut":0,"svcImm":1},{"cha":"Millicent Adoyo","chp":"Silpher Oluoch","sub":"Rachuonyo South","chu":"Kanyango Community Health Unit","ward":"South Kasipul Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":0,"svcFol":1,"svcNut":1,"svcImm":1},{"cha":"Claire Aloo","chp":"Beatrice Anyango Onyango","sub":"Rachuonyo South","chu":"Kamuma Upper","ward":"West Kamagak Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":0,"svcHHV":1,"svcRef":0,"svcFol":1,"svcNut":1,"svcImm":1},{"cha":"Millicent Adoyo","chp":"Dinah Atieno","sub":"Rachuonyo South","chu":"Kanyango Community Health Unit","ward":"South Kasipul Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":0,"svcRef":0,"svcFol":1,"svcNut":0,"svcImm":1},{"cha":"Millicent Adoyo","chp":"Linet Achieng","sub":"Rachuonyo South","chu":"Kanyango Community Health Unit","ward":"South Kasipul Ward","infoClr":false,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":0,"svcFol":1,"svcNut":0,"svcImm":1},{"cha":"Mercy Opiyo","chp":"Margaret Anyango","sub":"Suba North","chu":"Mbita Township C Community Health Unit","ward":"Kasgunga Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":1,"svcFol":0,"svcNut":0,"svcImm":1},{"cha":"Mercy Opiyo","chp":"Beryne Elisha","sub":"Suba North","chu":"Mbita Township C Community Health Unit","ward":"Kasgunga Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":false,"svcEdu":1,"svcHHV":1,"svcRef":0,"svcFol":1,"svcNut":0,"svcImm":1},{"cha":"Millicent Adoyo","chp":"Rose Atieno","sub":"Rachuonyo South","chu":"Kanyango Community Health Unit","ward":"South Kasipul Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":0,"svcFol":0,"svcNut":0,"svcImm":1},{"cha":"Millicent Adoyo","chp":"Grace Aoko","sub":"Rachuonyo South","chu":"Kanyango Community Health Unit","ward":"South Kasipul Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":0,"svcFol":0,"svcNut":0,"svcImm":1},{"cha":"Millicent Adoyo","chp":"Rodah Ngiela","sub":"Rachuonyo South","chu":"Kanyango Community Health Unit","ward":"South Kasipul Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":0,"svcFol":0,"svcNut":1,"svcImm":1},{"cha":"Florence Nyaoke","chp":"Rebecca Aoko","sub":"Suba South","chu":"Sumba East Community Health Unit","ward":"Ruma-kaksingiri East Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Satisfied","effectiveness":"Clear","childrenU5":false,"svcEdu":1,"svcHHV":1,"svcRef":1,"svcFol":1,"svcNut":1,"svcImm":1},{"cha":"Florence Nyaoke","chp":"Pauline Achieng","sub":"Suba South","chu":"Sumba East Community Health Unit","ward":"Ruma-kaksingiri East Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":0,"svcFol":1,"svcNut":0,"svcImm":1},{"cha":"Stellar Matiku","chp":"Florence Omolo","sub":"Rachuonyo North","chu":"Kanyadhiang Community Health Unit","ward":"Kendu Bay Town Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Satisfied","effectiveness":"Clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":0,"svcFol":1,"svcNut":0,"svcImm":1},{"cha":"Nelly Odinga","chp":"Rose Adongo","sub":"Rachuonyo East","chu":"Koloo Health Community Health Unit","ward":"Kabondo West Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":1,"svcFol":1,"svcNut":1,"svcImm":1},{"cha":"Florence Nyaoke","chp":"William Okoth","sub":"Suba South","chu":"Sumba East Community Health Unit","ward":"Ruma-kaksingiri East Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Satisfied","effectiveness":"Clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":1,"svcFol":1,"svcNut":1,"svcImm":1},{"cha":"Florence Nyaoke","chp":"Millicent Orieny","sub":"Suba South","chu":"Sumba East Community Health Unit","ward":"Ruma-kaksingiri East Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Satisfied","effectiveness":"Clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":1,"svcFol":1,"svcNut":1,"svcImm":1},{"cha":"Mourlyne Odhiambo","chp":"Ruth Anyango","sub":"Suba North","chu":"Mbita Township B Community Health Unit","ward":"Kasgunga Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":false,"svcEdu":1,"svcHHV":0,"svcRef":0,"svcFol":0,"svcNut":0,"svcImm":0},{"cha":"Mourlyne Odhiambo","chp":"Samwel Ogweno","sub":"Suba North","chu":"Mbita Township B Community Health Unit","ward":"Kasgunga Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":0,"svcFol":0,"svcNut":0,"svcImm":0},{"cha":"Mourlyne Odhiambo","chp":"Samwel Ogweno","sub":"Suba North","chu":"Mbita Township B Community Health Unit","ward":"Kasgunga Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":1,"svcFol":0,"svcNut":0,"svcImm":0},{"cha":"Winnie Achieng","chp":"Pamela Owino","sub":"Rachuonyo South","chu":"Nyalenda West CU","ward":"Central Kasipul Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":1,"svcFol":1,"svcNut":1,"svcImm":1},{"cha":"Caroline Mugah","chp":"George Odede","sub":"Rachuonyo South","chu":"Kamyawa B Community Health Unit","ward":"West Kasipul Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":1,"svcFol":1,"svcNut":0,"svcImm":1},{"cha":"Winnie Achieng","chp":"Pamela Owino","sub":"Rachuonyo South","chu":"Nyalenda West CU","ward":"Central Kasipul Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Satisfied","effectiveness":"Clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":0,"svcFol":1,"svcNut":1,"svcImm":1},{"cha":"Winnie Achieng","chp":"Pamela","sub":"Rachuonyo South","chu":"Nyalenda West CU","ward":"Central Kasipul Ward","infoClr":true,"svcProv":true,"followUp":true,"supplies":true,"protocols":true,"issues":false,"satisfaction":"Very satisfied","effectiveness":"Very clear","childrenU5":true,"svcEdu":1,"svcHHV":1,"svcRef":1,"svcFol":1,"svcNut":0,"svcImm":1}];
 
-const SHADOW_NAME_MAP = {
-  "Calvince Wanyancha":"Calvine Wanyancha","Calvinece Wanyancha":"Calvine Wanyancha",
-  "Calcince  Wanyach":"Calvine Wanyancha","Peninah Omuga":"Penina Omuga","Omuga Penina":"Penina Omuga",
-  "Diana Anyango":"Diana Judith'S Anyango","Dency":"Dency Opinde",
-  "Jane Atieno  Otae":"Jane Atieno Otae","Jackline  Achieng":"Jackline Achieng",
-};
-const SPOT_NAME_MAP = {
-  "Tabither":"Tabither Awuor","Glaire":"Claire Aloo","Stellar":"Stellar Matiku",
-  "Christabel Atieno":"Christabel Atieno Obunge","Juliet  Adoyo Peter":"Juliet Peter",
-};
 const SUB_COLORS = {
   'Rachuonyo South':'#1A5276','Rachuonyo North':'#1F618D','Rachuonyo East':'#2471A3',
   'Suba North':'#1E8449','Suba South':'#148F77','Rangwe':'#884EA0',
   'Homa Bay Town':'#CA6F1E','Ndhiwa':'#7B241C',
 };
-const SAT_COLORS = {'Very satisfied':'#1ABC9C','Satisfied':'#117A65','Dissatisfied':'#C0392B'};
-const SVC_COLORS = ['#1F618D','#117A65','#884EA0','#CA6F1E','#C0392B','#2471A3'];
+const SAT_COLORS  = {'Very satisfied':'#1ABC9C','Satisfied':'#117A65','Dissatisfied':'#C0392B'};
+const SVC_COLORS  = ['#1F618D','#117A65','#884EA0','#CA6F1E','#C0392B','#2471A3'];
+const EFF_COLORS  = {'Very clear':'#1ABC9C','Clear':'#117A65','Somewhat clear':'#CA6F1E','Not clear':'#C0392B'};
 
-function handleFile(type, input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const wb = XLSX.read(e.target.result, {type:'array', cellDates:true});
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const data = XLSX.utils.sheet_to_json(ws, {defval:''});
-    if (type === 'shadow') { rawShadow = data; }
-    else                   { rawSpot   = data; }
-    document.getElementById(`name-${type}`).textContent = file.name;
-    document.getElementById(`status-${type}`).textContent = `✓ ${data.length} records loaded`;
-    document.getElementById(`card-${type}`).classList.add('loaded');
-    if (rawShadow && rawSpot) document.getElementById('btn-load').classList.add('ready');
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-function cleanName(name, map) {
-  const n = (name||'').toString().trim().replace(/\s+/g,' ')
-    .split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(' ');
-  return map[n] || n;
-}
-function cleanSub(sub) {
-  return (sub||'').toString().trim().replace(/\s*sub\s*county\s*/i,'').trim();
-}
-
-function processData() {
-  const shadow = rawShadow.map(r => ({
-    cha: cleanName(r['CHA Name:'] || r['CHA Name'], SHADOW_NAME_MAP),
-    sub: cleanSub(r['Subcounty'] || r['subcounty'] || ''),
-  })).filter(r => r.cha && r.cha !== 'Nan');
-
-  const spot = rawSpot.map(r => ({
-    cha: cleanName(r['CHA Name:'] || r['CHA Name'], SPOT_NAME_MAP),
-    chp: cleanName(r['CHP Name:'] || r['CHP Name'], {}),
-    sub: cleanSub(r['Subcounty'] || ''),
-    chu: (r['Community Health Unit (CHU)'] || '').toString().trim(),
-    ward: (r['Ward'] || '').toString().trim(),
-    infoClr:   r['Was the information provided by the CHP clear and understandable?'] === 'Yes',
-    svcProv:   r['Did the CHP provide the necessary health services as expected?'] === 'Yes',
-    followUp:  r['Did the CHP follow up on previous visits and recommendations?'] === 'Yes',
-    supplies:  r['Did the CHP have the necessary supplies and materials during their visit?'] === 'Yes',
-    protocols: r['Did the CHP adhere to health protocols and guidelines during their visit?'] === 'Yes',
-    issues:    r['Did you face any issues or have concerns with the services provided?'] === 'Yes',
-    satisfaction: (r['How satisfied are you with the services provided by the CHP?'] || '').toString().trim(),
-    effectiveness: (r["How effective was the CHP's interaction and communication with the household?"] || '').toString().trim(),
-    childrenU5: r['3. Children Under 5:'] === 'Yes',
-    svcEdu:    +r['1. Services Provided by CHP in the last 3 months (Check all that apply):/Health Education.1'] || 0,
-    svcHHV:    +r['1. Services Provided by CHP in the last 3 months (Check all that apply):/Household Visit.1']  || 0,
-    svcRef:    +r['1. Services Provided by CHP in the last 3 months (Check all that apply):/Referral.1']         || 0,
-    svcFol:    +r['1. Services Provided by CHP in the last 3 months (Check all that apply):/Follow Up.1']        || 0,
-    svcNut:    +r['1. Services Provided by CHP in the last 3 months (Check all that apply):/Nutrition Screening.1'] || 0,
-    svcImm:    +r['1. Services Provided by CHP in the last 3 months (Check all that apply):/Immunization Follow\u2011up'] || 0,
-  })).filter(r => r.cha && r.cha !== 'Nan');
-
-  return {shadow, spot};
-}
+let charts = [];
 
 function countBy(arr, key) {
   const m = {};
@@ -335,9 +149,8 @@ function uniqueBy(arr, key) {
 }
 
 function buildDashboard() {
-  if (!rawShadow || !rawSpot) return;
-  const {shadow, spot} = processData();
-
+  const shadow = SHADOW_DATA;
+  const spot   = SPOT_DATA;
   charts.forEach(c=>c.destroy()); charts=[];
 
   const totShadow  = shadow.length;
@@ -346,34 +159,33 @@ function buildDashboard() {
   const chasSpot   = uniqueBy(spot,'cha').length;
   const totCHPs    = uniqueBy(spot,'chp').length;
   const totCHUs    = uniqueBy(spot,'chu').length;
-  const allSubs    = [...new Set([...shadow.map(r=>r.sub),...spot.map(r=>r.sub)])].filter(Boolean);
-  const totSubs    = allSubs.length;
+  const totSubs    = [...new Set([...shadow.map(r=>r.sub),...spot.map(r=>r.sub)])].filter(Boolean).length;
   const issues     = spot.filter(r=>r.issues).length;
   const childrenU5 = spot.filter(r=>r.childrenU5).length;
 
   const perf = [
-    {label:'Info clear & understandable',   yes: spot.filter(r=>r.infoClr).length},
-    {label:'Services provided as expected', yes: spot.filter(r=>r.svcProv).length},
-    {label:'Followed up on previous visits',yes: spot.filter(r=>r.followUp).length},
-    {label:'Had necessary supplies',        yes: spot.filter(r=>r.supplies).length},
-    {label:'Adhered to health protocols',   yes: spot.filter(r=>r.protocols).length},
+    {label:'Info clear & understandable',    yes: spot.filter(r=>r.infoClr).length},
+    {label:'Services provided as expected',  yes: spot.filter(r=>r.svcProv).length},
+    {label:'Followed up on previous visits', yes: spot.filter(r=>r.followUp).length},
+    {label:'Had necessary supplies',         yes: spot.filter(r=>r.supplies).length},
+    {label:'Adhered to health protocols',    yes: spot.filter(r=>r.protocols).length},
   ];
 
   const sat  = countBy(spot,'satisfaction');
   const eff  = countBy(spot,'effectiveness');
   const svcs = [
-    {label:'Health Education',     cnt: spot.reduce((a,r)=>a+r.svcEdu,0)},
-    {label:'Household Visit',      cnt: spot.reduce((a,r)=>a+r.svcHHV,0)},
-    {label:'Immunization Follow-up',cnt:spot.reduce((a,r)=>a+r.svcImm,0)},
-    {label:'Follow Up',            cnt: spot.reduce((a,r)=>a+r.svcFol,0)},
-    {label:'Nutrition Screening',  cnt: spot.reduce((a,r)=>a+r.svcNut,0)},
-    {label:'Referral',             cnt: spot.reduce((a,r)=>a+r.svcRef,0)},
+    {label:'Health Education',      cnt: spot.reduce((a,r)=>a+r.svcEdu,0)},
+    {label:'Household Visit',       cnt: spot.reduce((a,r)=>a+r.svcHHV,0)},
+    {label:'Immunization Follow-up',cnt: spot.reduce((a,r)=>a+r.svcImm,0)},
+    {label:'Follow Up',             cnt: spot.reduce((a,r)=>a+r.svcFol,0)},
+    {label:'Nutrition Screening',   cnt: spot.reduce((a,r)=>a+r.svcNut,0)},
+    {label:'Referral',              cnt: spot.reduce((a,r)=>a+r.svcRef,0)},
   ].sort((a,b)=>b.cnt-a.cnt);
 
   const shadowBySub = countBy(shadow,'sub');
   const spotBySub   = countBy(spot,'sub');
   const allSubsSorted = [...new Set([...Object.keys(shadowBySub),...Object.keys(spotBySub)])]
-    .sort((a,b)=>(shadowBySub[b]||0)+(spotBySub[b]||0) - (shadowBySub[a]||0)-(spotBySub[a]||0));
+    .sort((a,b)=>(shadowBySub[b]||0)+(spotBySub[b]||0)-(shadowBySub[a]||0)-(spotBySub[a]||0));
 
   const allCHAs = [...new Set([...shadow.map(r=>r.cha),...spot.map(r=>r.cha)])].filter(Boolean);
   const shByCHA = countBy(shadow,'cha');
@@ -384,97 +196,84 @@ function buildDashboard() {
     sub: shadow.find(r=>r.cha===c)?.sub || spot.find(r=>r.cha===c)?.sub || '',
   })).sort((a,b)=>b.total-a.total);
 
-  document.getElementById('upload-screen').style.display = 'none';
-  document.getElementById('dashboard').style.display = 'block';
-  document.getElementById('gen-time').textContent = new Date().toLocaleString();
-  document.getElementById('top-sub').textContent =
-    `Homa Bay County · ${totShadow + totSpot} total records · Generated ${new Date().toLocaleDateString()}`;
+  document.getElementById('last-updated').textContent = 'Data: Jun 2026';
+  document.getElementById('gen-time').textContent = 'Dashboard loaded ' + new Date().toLocaleString();
 
+  // KPIs
   const kpiData = [
-    {label:'Shadowings',      value:totShadow,  sub:`${chasShadow} CHAs active`,      icon:'📋', color:'#1F618D'},
-    {label:'Spot Checks',     value:totSpot,    sub:`${chasSpot} CHAs conducting`,     icon:'✅', color:'#117A65'},
-    {label:'CHPs Checked',    value:totCHPs,    sub:`${totCHUs} CHUs covered`,         icon:'👤', color:'#7D3C98'},
-    {label:'Subcounties',     value:totSubs,    sub:`${totCHUs} community health units`,icon:'📍',color:'#CA6F1E'},
-    {label:'Households w/ Issues', value:issues,sub:`${childrenU5} HHs w/ children U5`,icon:'⚠️',color:'#C0392B'},
+    {label:'Shadowings',          value:totShadow,  sub:`${chasShadow} CHAs active`,        icon:'📋', color:'#1F618D'},
+    {label:'Spot Checks',         value:totSpot,    sub:`${chasSpot} CHAs conducting`,       icon:'✅', color:'#117A65'},
+    {label:'CHPs Checked',        value:totCHPs,    sub:`${totCHUs} CHUs covered`,           icon:'👤', color:'#7D3C98'},
+    {label:'Subcounties',         value:totSubs,    sub:`${totCHUs} community health units`, icon:'📍', color:'#CA6F1E'},
+    {label:'Households w/ Issues',value:issues,     sub:`${childrenU5} HHs w/ children U5`, icon:'⚠️', color:'#C0392B'},
   ];
-  document.getElementById('kpi-strip').innerHTML = kpiData.map((k,i)=>`
+  document.getElementById('kpi-strip').innerHTML = kpiData.map(k=>`
     <div class="kpi-card fade-up" data-icon="${k.icon}" style="border-left-color:${k.color}">
       <div class="kpi-label">${k.label}</div>
       <div class="kpi-value" style="color:${k.color}">${k.value}</div>
       <div class="kpi-sub">${k.sub}</div>
     </div>`).join('');
 
+  // Row 1
+  const grandTot = totShadow + totSpot;
   const maxSh = Math.max(...Object.values(shadowBySub),1);
   const maxSp = Math.max(...Object.values(spotBySub),1);
-  const grandTot = totShadow + totSpot;
-
   document.getElementById('row1').innerHTML = `
     <div class="card">
       <div class="card-title"><span class="dot" style="background:#1F618D"></span>Activity by Subcounty</div>
-      <div class="table-scroll">
-        <table class="sub-table">
-          <thead><tr>
-            <th>Subcounty</th><th>Shadow</th><th>Spot Chk</th><th>Total</th><th>%</th><th>Shadow</th><th>Spot</th>
-          </tr></thead>
-          <tbody>
-            ${allSubsSorted.map(sub=>{
-              const sh=shadowBySub[sub]||0, sp=spotBySub[sub]||0, tot=sh+sp;
-              const pct=((tot/grandTot)*100).toFixed(1);
-              const col=SUB_COLORS[sub]||'#555';
-              const shW=Math.round(sh/maxSh*56), spW=Math.round(sp/maxSp*56);
-              return `<tr>
-                <td><span class="sub-dot" style="background:${col}"></span><strong>${sub}</strong></td>
-                <td style="color:#1F618D;font-weight:600">${sh}</td>
-                <td style="color:#117A65;font-weight:600">${sp}</td>
-                <td style="font-weight:700">${tot}</td>
-                <td style="color:${col};font-weight:700">${pct}%</td>
-                <td><span class="mini-bar-bg"><span class="mini-bar-fill" style="background:#1F618D;width:${shW}px"></span></span></td>
-                <td><span class="mini-bar-bg"><span class="mini-bar-fill" style="background:#117A65;width:${spW}px"></span></span></td>
-              </tr>`;
-            }).join('')}
-            <tr style="background:#f8f9fb">
-              <td><strong>TOTAL</strong></td>
-              <td style="font-weight:700;color:#1F618D">${totShadow}</td>
-              <td style="font-weight:700;color:#117A65">${totSpot}</td>
-              <td style="font-weight:700">${grandTot}</td>
-              <td style="font-weight:700">100%</td><td></td><td></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <div class="table-scroll"><table class="sub-table">
+        <thead><tr><th>Subcounty</th><th>Shadow</th><th>Spot</th><th>Total</th><th>%</th><th>Shadow</th><th>Spot</th></tr></thead>
+        <tbody>
+          ${allSubsSorted.map(sub=>{
+            const sh=shadowBySub[sub]||0,sp=spotBySub[sub]||0,tot=sh+sp;
+            const pct=((tot/grandTot)*100).toFixed(1);
+            const col=SUB_COLORS[sub]||'#555';
+            return `<tr>
+              <td><span class="sub-dot" style="background:${col}"></span><strong>${sub}</strong></td>
+              <td style="color:#1F618D;font-weight:600">${sh}</td>
+              <td style="color:#117A65;font-weight:600">${sp}</td>
+              <td style="font-weight:700">${tot}</td>
+              <td style="color:${col};font-weight:700">${pct}%</td>
+              <td><span class="mini-bar-bg"><span class="mini-bar-fill" style="background:#1F618D;width:${Math.round(sh/maxSh*56)}px"></span></span></td>
+              <td><span class="mini-bar-bg"><span class="mini-bar-fill" style="background:#117A65;width:${Math.round(sp/maxSp*56)}px"></span></span></td>
+            </tr>`;
+          }).join('')}
+          <tr style="background:#f8f9fb">
+            <td><strong>TOTAL</strong></td>
+            <td style="font-weight:700;color:#1F618D">${totShadow}</td>
+            <td style="font-weight:700;color:#117A65">${totSpot}</td>
+            <td style="font-weight:700">${grandTot}</td>
+            <td style="font-weight:700">100%</td><td></td><td></td>
+          </tr>
+        </tbody>
+      </table></div>
     </div>
     <div class="card">
       <div class="card-title"><span class="dot" style="background:#117A65"></span>CHP Performance Indicators</div>
       ${perf.map(p=>{
         const pct=((p.yes/totSpot)*100).toFixed(1);
-        const col = +pct>=90?'#1E8449':+pct>=75?'#CA6F1E':'#C0392B';
+        const col=+pct>=90?'#1E8449':+pct>=75?'#CA6F1E':'#C0392B';
         return `<div class="perf-row">
           <div class="perf-label">${p.label}</div>
           <div class="perf-pct" style="color:${col}">${pct}%</div>
-          <div class="perf-bar-bg">
-            <div class="perf-bar-fill" style="width:${pct}%;background:${col}"></div>
-          </div>
+          <div class="perf-bar-bg"><div class="perf-bar-fill" style="width:${pct}%;background:${col}"></div></div>
           <div style="font-size:10px;color:var(--muted);width:50px;text-align:right">${p.yes}/${totSpot}</div>
         </div>`;
       }).join('')}
     </div>`;
 
-  const satOrder  = ['Very satisfied','Satisfied','Dissatisfied'];
-  const effOrder  = ['Very clear','Clear','Somewhat clear','Not clear'];
-  const effColors = {'Very clear':'#1ABC9C','Clear':'#117A65','Somewhat clear':'#CA6F1E','Not clear':'#C0392B'};
+  // Row 2
+  const satOrder = ['Very satisfied','Satisfied','Dissatisfied'];
+  const effOrder = ['Very clear','Clear','Somewhat clear','Not clear'];
   const maxSvc = Math.max(...svcs.map(s=>s.cnt),1);
-
   document.getElementById('row2').innerHTML = `
     <div class="card">
       <div class="card-title"><span class="dot" style="background:#1ABC9C"></span>Household Satisfaction</div>
       ${satOrder.map(r=>{
         const cnt=sat[r]||0; const pct=((cnt/totSpot)*100).toFixed(1);
-        const col=SAT_COLORS[r]||'#555';
         return `<div class="sat-row">
           <div class="sat-label">${r}</div>
-          <div class="sat-bar-bg">
-            <div class="sat-bar-fill" style="width:${pct}%;background:${col}">${cnt>2?cnt:''}</div>
-          </div>
+          <div class="sat-bar-bg"><div class="sat-bar-fill" style="width:${pct}%;background:${SAT_COLORS[r]||'#555'}">${cnt>2?cnt:''}</div></div>
           <div class="sat-count">${pct}%</div>
         </div>`;
       }).join('')}
@@ -486,9 +285,7 @@ function buildDashboard() {
         const pct=((s.cnt/totSpot)*100).toFixed(1);
         return `<div class="svc-row">
           <div class="svc-label">${s.label}</div>
-          <div class="svc-bar-bg">
-            <div class="svc-bar-fill" style="width:${(s.cnt/maxSvc*100).toFixed(0)}%;background:${SVC_COLORS[i]}">${s.cnt}</div>
-          </div>
+          <div class="svc-bar-bg"><div class="svc-bar-fill" style="width:${(s.cnt/maxSvc*100).toFixed(0)}%;background:${SVC_COLORS[i]}">${s.cnt}</div></div>
           <div class="svc-pct">${pct}%</div>
         </div>`;
       }).join('')}
@@ -497,151 +294,108 @@ function buildDashboard() {
       <div class="card-title"><span class="dot" style="background:#CA6F1E"></span>CHP Communication Effectiveness</div>
       ${effOrder.map(r=>{
         const cnt=eff[r]||0; const pct=((cnt/totSpot)*100).toFixed(1);
-        const col=effColors[r]||'#888';
         return `<div class="sat-row">
           <div class="sat-label">${r}</div>
-          <div class="sat-bar-bg">
-            <div class="sat-bar-fill" style="width:${pct}%;background:${col}">${cnt>2?cnt:''}</div>
-          </div>
+          <div class="sat-bar-bg"><div class="sat-bar-fill" style="width:${pct}%;background:${EFF_COLORS[r]||'#888'}">${cnt>2?cnt:''}</div></div>
           <div class="sat-count">${pct}%</div>
         </div>`;
       }).join('')}
       <div class="chart-wrap-sm" style="margin-top:14px"><canvas id="chartEff"></canvas></div>
     </div>`;
 
+  // Row 3
   const topCHAs = chaRows.slice(0,20);
   document.getElementById('row3').innerHTML = `
     <div class="card">
       <div class="card-title"><span class="dot" style="background:#0E6655"></span>CHA Activity — Top ${topCHAs.length}</div>
-      <div class="table-scroll">
-        <table class="cha-table">
-          <thead><tr><th>#</th><th>CHA Name</th><th>Subcounty</th><th>Shadow</th><th>Spot Chk</th><th>Total</th><th>Type</th></tr></thead>
-          <tbody>
-            ${topCHAs.map((c,i)=>{
-              const type = c.shadow>0&&c.spot>0?'<span class="chip chip-both">Both</span>':
-                           c.shadow>0?'<span class="chip chip-blue">Shadow</span>':'<span class="chip chip-teal">Spot Chk</span>';
-              return `<tr>
-                <td style="color:var(--muted)">${i+1}</td>
-                <td style="font-weight:600;text-align:left">${c.name}</td>
-                <td style="text-align:left;color:${SUB_COLORS[c.sub]||'#555'};font-size:11px">${c.sub}</td>
-                <td>${c.shadow||'-'}</td><td>${c.spot||'-'}</td>
-                <td style="font-weight:700">${c.total}</td><td>${type}</td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>
+      <div class="table-scroll"><table class="cha-table">
+        <thead><tr><th>#</th><th>CHA Name</th><th>Subcounty</th><th>Shadow</th><th>Spot</th><th>Total</th><th>Type</th></tr></thead>
+        <tbody>${topCHAs.map((c,i)=>{
+          const type=c.shadow>0&&c.spot>0?'<span class="chip chip-both">Both</span>':
+                     c.shadow>0?'<span class="chip chip-blue">Shadow</span>':'<span class="chip chip-teal">Spot</span>';
+          return `<tr>
+            <td style="color:var(--muted)">${i+1}</td>
+            <td style="font-weight:600;text-align:left">${c.name}</td>
+            <td style="text-align:left;color:${SUB_COLORS[c.sub]||'#555'};font-size:11px">${c.sub}</td>
+            <td>${c.shadow||'-'}</td><td>${c.spot||'-'}</td>
+            <td style="font-weight:700">${c.total}</td><td>${type}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>
     </div>
     <div class="card">
       <div class="card-title"><span class="dot" style="background:#2471A3"></span>Activity by Subcounty (Chart)</div>
       <div class="chart-wrap"><canvas id="chartSub"></canvas></div>
       <div style="margin-top:16px">
         <div class="card-title" style="margin-bottom:10px"><span class="dot" style="background:#117A65"></span>All CHAs at a Glance</div>
-        <div class="summary-pills">
-          ${chaRows.map(c=>`<span class="pill"><strong>${c.name.split(' ')[0]}</strong> ${c.total}</span>`).join('')}
-        </div>
+        <div class="summary-pills">${chaRows.map(c=>`<span class="pill"><strong>${c.name.split(' ')[0]}</strong> ${c.total}</span>`).join('')}</div>
       </div>
     </div>`;
 
+  // Row 4
   document.getElementById('row4').innerHTML = `
     <div class="card">
       <div class="card-title"><span class="dot" style="background:#1F618D"></span>All CHAs — Complete Activity (${chaRows.length} CHAs)</div>
-      <div class="table-scroll">
-        <table class="cha-table">
-          <thead><tr><th>#</th><th>CHA Name</th><th>Subcounty</th><th>Shadowings</th><th>Spot Checks</th><th>Total</th></tr></thead>
-          <tbody>
-            ${chaRows.map((c,i)=>`<tr>
-              <td style="color:var(--muted)">${i+1}</td>
-              <td style="font-weight:600;text-align:left">${c.name}</td>
-              <td style="text-align:left;color:${SUB_COLORS[c.sub]||'#555'};font-size:11px">${c.sub}</td>
-              <td style="color:#1F618D;font-weight:${c.shadow?600:400}">${c.shadow||'—'}</td>
-              <td style="color:#117A65;font-weight:${c.spot?600:400}">${c.spot||'—'}</td>
-              <td style="font-weight:700">${c.total}</td>
-            </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>
+      <div class="table-scroll"><table class="cha-table">
+        <thead><tr><th>#</th><th>CHA Name</th><th>Subcounty</th><th>Shadowings</th><th>Spot Checks</th><th>Total</th></tr></thead>
+        <tbody>${chaRows.map((c,i)=>`<tr>
+          <td style="color:var(--muted)">${i+1}</td>
+          <td style="font-weight:600;text-align:left">${c.name}</td>
+          <td style="text-align:left;color:${SUB_COLORS[c.sub]||'#555'};font-size:11px">${c.sub}</td>
+          <td style="color:#1F618D;font-weight:${c.shadow?600:400}">${c.shadow||'—'}</td>
+          <td style="color:#117A65;font-weight:${c.spot?600:400}">${c.spot||'—'}</td>
+          <td style="font-weight:700">${c.total}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>
     </div>
     <div class="card">
       <div class="card-title"><span class="dot" style="background:#117A65"></span>Spot Checks by CHP (${totCHPs} CHPs)</div>
-      <div class="table-scroll">
-        <table class="cha-table">
-          <thead><tr><th>#</th><th>CHP Name</th><th>CHA Supervisor</th><th>Subcounty</th><th>Checks</th></tr></thead>
-          <tbody>
-            ${buildCHPTable(spot)}
-          </tbody>
-        </table>
-      </div>
+      <div class="table-scroll"><table class="cha-table">
+        <thead><tr><th>#</th><th>CHP Name</th><th>CHA Supervisor</th><th>Subcounty</th><th>Checks</th></tr></thead>
+        <tbody>${buildCHPTable(spot)}</tbody>
+      </table></div>
     </div>`;
 
-  setTimeout(() => {
+  // Charts
+  setTimeout(()=>{
     const satLabels = satOrder.filter(s=>sat[s]);
-    const c1 = new Chart(document.getElementById('chartSat'), {
+    charts.push(new Chart(document.getElementById('chartSat'),{
       type:'doughnut',
-      data:{labels:satLabels, datasets:[{data:satLabels.map(s=>sat[s]||0),
-        backgroundColor:satLabels.map(s=>SAT_COLORS[s]||'#ccc'), borderWidth:2, borderColor:'#fff'}]},
+      data:{labels:satLabels,datasets:[{data:satLabels.map(s=>sat[s]||0),backgroundColor:satLabels.map(s=>SAT_COLORS[s]||'#ccc'),borderWidth:2,borderColor:'#fff'}]},
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10},padding:8}}}}
-    });
-    charts.push(c1);
-
+    }));
     const effLabels = effOrder.filter(e=>eff[e]);
-    const c2 = new Chart(document.getElementById('chartEff'), {
+    charts.push(new Chart(document.getElementById('chartEff'),{
       type:'doughnut',
-      data:{labels:effLabels, datasets:[{data:effLabels.map(e=>eff[e]||0),
-        backgroundColor:effLabels.map(e=>effColors[e]||'#ccc'), borderWidth:2, borderColor:'#fff'}]},
+      data:{labels:effLabels,datasets:[{data:effLabels.map(e=>eff[e]||0),backgroundColor:effLabels.map(e=>EFF_COLORS[e]||'#ccc'),borderWidth:2,borderColor:'#fff'}]},
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10},padding:8}}}}
-    });
-    charts.push(c2);
-
-    const c3 = new Chart(document.getElementById('chartSub'), {
+    }));
+    charts.push(new Chart(document.getElementById('chartSub'),{
       type:'bar',
-      data:{
-        labels: allSubsSorted,
-        datasets:[
-          {label:'Shadowings',  data:allSubsSorted.map(s=>shadowBySub[s]||0), backgroundColor:'#2471A3', borderRadius:4},
-          {label:'Spot Checks', data:allSubsSorted.map(s=>spotBySub[s]||0),   backgroundColor:'#1ABC9C', borderRadius:4},
-        ]
-      },
-      options:{
-        responsive:true, maintainAspectRatio:false,
-        scales:{x:{ticks:{font:{size:9}},grid:{display:false}}, y:{ticks:{font:{size:9}},grid:{color:'#eef0f2'}}},
-        plugins:{legend:{position:'bottom',labels:{font:{size:10},padding:8}}},
-      }
-    });
-    charts.push(c3);
-  }, 100);
+      data:{labels:allSubsSorted,datasets:[
+        {label:'Shadowings', data:allSubsSorted.map(s=>shadowBySub[s]||0),backgroundColor:'#2471A3',borderRadius:4},
+        {label:'Spot Checks',data:allSubsSorted.map(s=>spotBySub[s]||0),backgroundColor:'#1ABC9C',borderRadius:4},
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,
+        scales:{x:{ticks:{font:{size:9}},grid:{display:false}},y:{ticks:{font:{size:9}},grid:{color:'#eef0f2'}}},
+        plugins:{legend:{position:'bottom',labels:{font:{size:10},padding:8}}}}
+    }));
+  },100);
 }
 
 function buildCHPTable(spot) {
-  const chpMap = {};
-  spot.forEach(r => {
-    if (!chpMap[r.chp]) chpMap[r.chp] = {cha:r.cha, sub:r.sub, cnt:0};
-    chpMap[r.chp].cnt++;
-  });
-  return Object.entries(chpMap)
-    .sort((a,b)=>b[1].cnt-a[1].cnt)
-    .map(([chp,v],i)=>`<tr>
-      <td style="color:var(--muted)">${i+1}</td>
-      <td style="font-weight:600;text-align:left">${chp}</td>
-      <td style="text-align:left;font-size:11px">${v.cha}</td>
-      <td style="text-align:left;color:${SUB_COLORS[v.sub]||'#555'};font-size:11px">${v.sub}</td>
-      <td style="font-weight:700">${v.cnt}</td>
-    </tr>`).join('');
+  const m = {};
+  spot.forEach(r=>{if(!m[r.chp])m[r.chp]={cha:r.cha,sub:r.sub,cnt:0};m[r.chp].cnt++;});
+  return Object.entries(m).sort((a,b)=>b[1].cnt-a[1].cnt).map(([chp,v],i)=>`<tr>
+    <td style="color:var(--muted)">${i+1}</td>
+    <td style="font-weight:600;text-align:left">${chp}</td>
+    <td style="text-align:left;font-size:11px">${v.cha}</td>
+    <td style="text-align:left;color:${SUB_COLORS[v.sub]||'#555'};font-size:11px">${v.sub}</td>
+    <td style="font-weight:700">${v.cnt}</td>
+  </tr>`).join('');
 }
 
-function resetDashboard() {
-  rawShadow=null; rawSpot=null;
-  charts.forEach(c=>c.destroy()); charts=[];
-  document.getElementById('dashboard').style.display='none';
-  document.getElementById('upload-screen').style.display='flex';
-  document.getElementById('btn-load').classList.remove('ready');
-  ['shadow','spot'].forEach(t=>{
-    document.getElementById(`name-${t}`).textContent='Click to upload .xlsx';
-    document.getElementById(`status-${t}`).textContent='';
-    document.getElementById(`card-${t}`).classList.remove('loaded');
-    document.getElementById(`file-${t}`).value='';
-  });
-}
+buildDashboard();
 </script>
 </body>
 </html>
