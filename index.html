@@ -1,576 +1,748 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Community Health Program – Dashboard</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<title>CHP Summary Dashboard – Homa Bay County</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-  :root{
-    --navy:#0D2137;--blue1:#1A3A5C;--blue2:#1F618D;--blue3:#2471A3;
-    --teal1:#0E6655;--teal2:#117A65;--teal3:#1ABC9C;
-    --red:#C0392B;--bg:#F0F4F8;--card:#FFFFFF;--border:#DDE3EA;--text:#1C2B3A;--muted:#6B7A8D;
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+  :root {
+    --navy:   #0D2B4E;
+    --teal:   #0E7C7B;
+    --teal2:  #14A89A;
+    --sky:    #E8F4F8;
+    --mint:   #E6F7F5;
+    --white:  #FFFFFF;
+    --gray:   #F4F6F8;
+    --text:   #1C2833;
+    --muted:  #6B7A8D;
+    --green:  #1A7A4A;
+    --red:    #C0392B;
+    --amber:  #D68910;
+    --border: #DDE3EA;
   }
-  html{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-size:14px}
-  #login-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;background:linear-gradient(135deg,var(--navy) 0%,#0a3055 60%,#0e4d6e 100%)}
-  .login-logo{font-size:48px;margin-bottom:16px}
-  .login-title{font-size:26px;font-weight:700;color:#fff;text-align:center;margin-bottom:6px}
-  .login-sub{font-size:13px;color:#8faec8;text-align:center;margin-bottom:40px}
-  .login-card{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);border-radius:16px;padding:32px;width:100%;max-width:440px}
-  .login-label{font-size:11px;font-weight:600;color:#8faec8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;display:block}
-  .input-wrap{position:relative;margin-bottom:20px}
-  .login-input{width:100%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:12px 44px 12px 14px;color:#fff;font-size:13px;font-family:'DM Mono',monospace}
-  .login-input:focus{outline:none;border-color:var(--teal3)}
-  .login-input::placeholder{color:#4a6a80}
-  .toggle-vis{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#8faec8;cursor:pointer;font-size:16px;padding:4px}
-  .login-remember{display:flex;align-items:center;gap:8px;margin-bottom:20px}
-  .login-remember input{width:16px;height:16px;cursor:pointer;accent-color:var(--teal3)}
-  .login-remember label{font-size:12px;color:#8faec8;cursor:pointer}
-  .btn-connect{width:100%;padding:14px;background:var(--teal2);color:#fff;font-size:15px;font-weight:600;border:none;border-radius:10px;cursor:pointer;transition:background .2s}
-  .btn-connect:hover{background:var(--teal1)}
-  .btn-connect:disabled{opacity:.5;cursor:not-allowed}
-  .login-note{font-size:11px;color:#5a7a96;margin-top:14px;text-align:center}
-  .login-error{background:rgba(192,57,43,.2);border:1px solid rgba(192,57,43,.4);color:#ff8a7a;border-radius:8px;padding:10px 14px;font-size:12px;margin-bottom:16px;display:none;line-height:1.6}
-  #loading-screen{display:none;min-height:100vh;align-items:center;justify-content:center;flex-direction:column;gap:16px;background:var(--bg)}
-  .spinner{width:48px;height:48px;border:4px solid var(--border);border-top-color:var(--teal3);border-radius:50%;animation:spin 1s linear infinite}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  #dashboard{display:none}
-  .top-bar{background:var(--navy);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:58px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25)}
-  .top-bar-left{display:flex;align-items:center;gap:12px}
-  .top-bar-title{font-size:15px;font-weight:700;color:#fff}
-  .top-bar-sub{font-size:11px;color:#5a7a96}
-  .top-bar-right{display:flex;align-items:center;gap:10px}
-  .badge{background:rgba(26,188,156,.2);color:var(--teal3);font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px}
-  .btn-sm{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#ccc;font-size:12px;padding:6px 14px;border-radius:7px;cursor:pointer}
-  .btn-sm:hover{background:rgba(255,255,255,.15);color:#fff}
-  .dash-body{padding:24px 28px;max-width:1400px;margin:0 auto}
-  .kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px}
-  .kpi-card{background:var(--card);border-radius:12px;padding:18px 20px;border-left:4px solid var(--blue2);box-shadow:0 1px 4px rgba(0,0,0,.06);position:relative;overflow:hidden}
-  .kpi-card::after{content:attr(data-icon);position:absolute;right:14px;top:12px;font-size:26px;opacity:.15}
-  .kpi-label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
-  .kpi-value{font-size:32px;font-weight:700;line-height:1}
-  .kpi-sub{font-size:11px;color:var(--muted);margin-top:4px}
-  .section-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin:28px 0 14px;padding-bottom:8px;border-bottom:2px solid var(--border);display:flex;align-items:center;gap:8px}
-  .section-title span{font-size:16px}
-  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-  .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
-  .grid-32{display:grid;grid-template-columns:3fr 2fr;gap:18px}
-  .grid-23{display:grid;grid-template-columns:2fr 3fr;gap:18px}
-  .card{background:var(--card);border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
-  .card-title{font-size:12px;font-weight:700;color:var(--navy);margin-bottom:16px;display:flex;align-items:center;gap:6px}
-  .card-title .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
-  .perf-row{display:flex;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);gap:10px}
-  .perf-row:last-child{border-bottom:none}
-  .perf-label{flex:1;font-size:12px}
-  .perf-pct{font-size:13px;font-weight:700;width:46px;text-align:right}
-  .perf-bar-bg{flex:1;height:7px;background:#e8ecf0;border-radius:4px;overflow:hidden}
-  .perf-bar-fill{height:100%;border-radius:4px}
-  .sub-table{width:100%;border-collapse:collapse;font-size:12px}
-  .sub-table th{background:var(--blue1);color:#fff;padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
-  .sub-table th:not(:first-child){text-align:center}
-  .sub-table td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
-  .sub-table tr:hover td{background:#f5f8fb}
-  .sub-table td:not(:first-child){text-align:center;font-family:'DM Mono',monospace}
-  .sub-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
-  .mini-bar-bg{display:inline-block;width:60px;height:6px;background:#e8ecf0;border-radius:3px;vertical-align:middle;position:relative}
-  .mini-bar-fill{position:absolute;left:0;top:0;height:100%;border-radius:3px}
-  .cha-table{width:100%;border-collapse:collapse;font-size:12px}
-  .cha-table th{background:var(--teal1);color:#fff;padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
-  .cha-table td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
-  .cha-table tr:hover td{background:#f0faf7}
-  .cha-table td:not(:first-child){text-align:center;font-family:'DM Mono',monospace;font-size:12px}
-  .chip{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
-  .chip-blue{background:#dbeafe;color:var(--blue2)}
-  .chip-teal{background:#d1faf0;color:var(--teal1)}
-  .chip-both{background:#fef3c7;color:#92400e}
-  .sat-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-  .sat-label{font-size:12px;width:120px;flex-shrink:0;font-weight:500}
-  .sat-bar-bg{flex:1;height:22px;background:#e8ecf0;border-radius:6px;overflow:hidden}
-  .sat-bar-fill{height:100%;border-radius:6px;display:flex;align-items:center;padding-left:8px;font-size:11px;font-weight:600;color:#fff}
-  .sat-count{font-size:12px;font-family:'DM Mono',monospace;width:50px;text-align:right;color:var(--muted)}
-  .svc-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
-  .svc-label{font-size:12px;width:150px;flex-shrink:0}
-  .svc-bar-bg{flex:1;height:18px;background:#e8ecf0;border-radius:5px;overflow:hidden}
-  .svc-bar-fill{height:100%;border-radius:5px;display:flex;align-items:center;padding-left:8px;font-size:10px;font-weight:600;color:#fff;min-width:30px}
-  .svc-pct{font-size:11px;font-family:'DM Mono',monospace;width:40px;text-align:right;color:var(--muted)}
-  .chart-wrap{position:relative;height:240px}
-  .chart-wrap-sm{position:relative;height:190px}
-  .summary-pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
-  .pill{background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:5px 14px;font-size:11px;color:var(--muted)}
-  .pill strong{color:var(--text)}
-  .table-scroll{overflow-y:auto;max-height:380px}
-  .table-scroll::-webkit-scrollbar{width:4px}
-  .table-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
-  .dash-footer{text-align:center;padding:24px;font-size:11px;color:var(--muted);border-top:1px solid var(--border);margin-top:32px}
-  @media(max-width:900px){.kpi-strip{grid-template-columns:repeat(3,1fr)}.grid-2,.grid-32,.grid-23{grid-template-columns:1fr}.dash-body{padding:16px}}
-  @media(max-width:600px){.kpi-strip{grid-template-columns:1fr 1fr}}
-  @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-  .fade-up{animation:fadeUp .4s ease both}
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--gray);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── TOP NAV ── */
+  .topbar {
+    background: var(--navy);
+    padding: 0 28px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+  }
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+  .topbar-logo { font-size: 22px; }
+  .topbar-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: 0.3px;
+  }
+  .topbar-sub { font-size: 11px; color: rgba(255,255,255,0.6); margin-top: 1px; }
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+  .badge-live {
+    background: var(--teal2);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .badge-live::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: #7FFFD4;
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  .btn-back {
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: 6px;
+    text-decoration: none;
+    border: 1px solid rgba(255,255,255,0.2);
+    transition: background 0.2s;
+  }
+  .btn-back:hover { background: rgba(255,255,255,0.2); }
+  .refresh-btn {
+    background: none;
+    border: 1px solid rgba(255,255,255,0.25);
+    color: rgba(255,255,255,0.8);
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .refresh-btn:hover { background: rgba(255,255,255,0.1); }
+
+  /* ── LOADING ── */
+  #loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    gap: 16px;
+  }
+  .spinner {
+    width: 44px; height: 44px;
+    border: 4px solid var(--border);
+    border-top-color: var(--teal);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loading p { color: var(--muted); font-size: 14px; }
+
+  /* ── ERROR ── */
+  #error-msg {
+    display: none;
+    background: #FDEDEC;
+    border: 1px solid #F1948A;
+    color: #922B21;
+    padding: 16px 24px;
+    border-radius: 10px;
+    margin: 24px;
+    font-size: 13px;
+  }
+
+  /* ── MAIN CONTENT ── */
+  #dashboard { display: none; }
+
+  .page-header {
+    background: linear-gradient(135deg, var(--navy) 0%, #1A4A7A 100%);
+    padding: 28px 28px 24px;
+    color: #fff;
+  }
+  .page-header h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .page-header p { font-size: 13px; color: rgba(255,255,255,0.65); }
+  .last-updated { font-size: 11px; color: rgba(255,255,255,0.45); margin-top: 6px; }
+
+  .content { padding: 24px 28px; max-width: 1400px; margin: 0 auto; }
+
+  /* ── SECTION HEADERS ── */
+  .section-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--teal);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 32px 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── KPI GRID ── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+  }
+  .kpi-card {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 18px 16px;
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.08); }
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .kpi-card.blue::before   { background: var(--navy); }
+  .kpi-card.teal::before   { background: var(--teal); }
+  .kpi-card.green::before  { background: var(--green); }
+  .kpi-card.amber::before  { background: var(--amber); }
+  .kpi-card.red::before    { background: var(--red); }
+  .kpi-card.purple::before { background: #7D3C98; }
+  .kpi-card.slate::before  { background: #5D6D7E; }
+  .kpi-card.teal2::before  { background: var(--teal2); }
+
+  .kpi-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 8px;
+  }
+  .kpi-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--navy);
+    line-height: 1;
+  }
+  .kpi-sub { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+  /* ── CHARTS GRID ── */
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .charts-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+  @media (max-width: 900px) {
+    .charts-grid, .charts-grid.three { grid-template-columns: 1fr; }
+  }
+
+  .chart-card {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid var(--border);
+  }
+  .chart-card.full { grid-column: 1 / -1; }
+  .chart-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--navy);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .chart-badge {
+    font-size: 10px;
+    font-weight: 500;
+    background: var(--sky);
+    color: var(--teal);
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+  .chart-wrap { position: relative; height: 220px; }
+  .chart-wrap.tall { height: 280px; }
+
+  /* ── PERFORMANCE BARS ── */
+  .perf-list { display: flex; flex-direction: column; gap: 12px; }
+  .perf-item {}
+  .perf-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+  .perf-label { font-size: 12px; font-weight: 500; color: var(--text); }
+  .perf-pct {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .perf-bar-bg {
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .perf-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 1s ease;
+  }
+
+  /* ── TABLE ── */
+  .table-wrap { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  thead th {
+    background: var(--navy);
+    color: #fff;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 10px 14px;
+    text-align: left;
+    white-space: nowrap;
+  }
+  tbody tr:nth-child(even) { background: var(--gray); }
+  tbody tr:hover { background: var(--sky); }
+  tbody td { padding: 9px 14px; color: var(--text); border-bottom: 1px solid var(--border); }
+  tbody td.num {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    text-align: right;
+    color: var(--navy);
+  }
+  tbody td.sub { font-weight: 500; color: var(--teal); }
+  .tfoot-row td {
+    background: var(--navy) !important;
+    color: #fff !important;
+    font-weight: 700;
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    text-align: center;
+    padding: 20px;
+    font-size: 11px;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+    margin-top: 40px;
+  }
 </style>
 </head>
 <body>
 
-<!-- LOGIN -->
-<div id="login-screen">
-  <div class="login-logo">🏥</div>
-  <div class="login-title">Community Health Program</div>
-  <div class="login-sub">Homa Bay County · Live KoboToolbox Dashboard</div>
-  <div class="login-card">
-    <div class="login-error" id="login-error"></div>
-    <label class="login-label">KoboToolbox API Token</label>
-    <div class="input-wrap">
-      <input class="login-input" id="token-input" type="password" placeholder="Paste your API token here"/>
-      <button class="toggle-vis" onclick="toggleVis()" title="Show/hide token">👁</button>
+<!-- TOP NAV -->
+<nav class="topbar">
+  <div class="topbar-left">
+    <span class="topbar-logo">🏥</span>
+    <div>
+      <div class="topbar-title">Community Health Programs</div>
+      <div class="topbar-sub">Homa Bay County · Summary Dashboard</div>
     </div>
-    <div class="login-remember">
-      <input type="checkbox" id="remember-token" checked/>
-      <label for="remember-token">Remember token on this device</label>
-    </div>
-    <button class="btn-connect" id="btn-connect" onclick="connect()">Connect to KoboToolbox →</button>
-    <div class="login-note">Your token is stored only in your browser · Never sent to any third party</div>
   </div>
-</div>
+  <div class="topbar-right">
+    <span class="badge-live">Live</span>
+    <button class="refresh-btn" onclick="loadData()">🔄 Refresh</button>
+    <a href="index.html" class="btn-back">← Main Dashboard</a>
+  </div>
+</nav>
 
 <!-- LOADING -->
-<div id="loading-screen">
+<div id="loading">
   <div class="spinner"></div>
-  <div style="font-size:14px;color:var(--muted)" id="loading-text">Connecting to KoboToolbox...</div>
-  <div style="font-size:12px;color:var(--border)" id="loading-sub">Fetching submissions</div>
+  <p>Loading live data from Google Sheets…</p>
 </div>
+
+<!-- ERROR -->
+<div id="error-msg"></div>
 
 <!-- DASHBOARD -->
 <div id="dashboard">
-  <div class="top-bar">
-    <div class="top-bar-left">
-      <span style="font-size:20px">🏥</span>
-      <div>
-        <div class="top-bar-title">Community Health Program Dashboard</div>
-        <div class="top-bar-sub" id="top-sub">Homa Bay County</div>
+  <div class="page-header">
+    <h1>📊 CHP Activity Summary Report</h1>
+    <p>Shadowing Tool & Spot Check Tool · Cleaned & deduplicated data</p>
+    <div class="last-updated" id="last-updated"></div>
+  </div>
+
+  <div class="content">
+
+    <!-- KPIs -->
+    <div class="section-title">Key Figures</div>
+    <div class="kpi-grid" id="kpi-grid"></div>
+
+    <!-- SUBCOUNTY CHARTS -->
+    <div class="section-title">Activity by Subcounty</div>
+    <div class="charts-grid">
+      <div class="chart-card full">
+        <div class="chart-title">Shadowings & Spot Checks per Subcounty <span class="chart-badge">Both Tools</span></div>
+        <div class="chart-wrap tall"><canvas id="subcountyChart"></canvas></div>
       </div>
     </div>
-    <div class="top-bar-right">
-      <span class="badge">Live · KoboToolbox</span>
-      <button class="btn-sm" onclick="refreshData()">🔄 Refresh</button>
-      <button class="btn-sm" onclick="logout()">↩ Logout</button>
+
+    <!-- PERFORMANCE + SATISFACTION -->
+    <div class="section-title">CHP Performance & Household Feedback</div>
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">Performance Indicators <span class="chart-badge">Spot Check n=74</span></div>
+        <div class="perf-list" id="perf-list"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Household Satisfaction <span class="chart-badge">Spot Check n=74</span></div>
+        <div class="chart-wrap"><canvas id="satChart"></canvas></div>
+      </div>
     </div>
+
+    <!-- SERVICES -->
+    <div class="section-title">Services Delivered by CHPs</div>
+    <div class="charts-grid">
+      <div class="chart-card full">
+        <div class="chart-title">Services Provided in Last 3 Months <span class="chart-badge">% of Spot Checks</span></div>
+        <div class="chart-wrap"><canvas id="svcChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- CHA TABLES -->
+    <div class="section-title">CHA Activity Detail</div>
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">Top CHAs – Shadowings Conducted</div>
+        <div class="table-wrap" id="shadow-table"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Top CHAs – Spot Checks Conducted</div>
+        <div class="table-wrap" id="spot-table"></div>
+      </div>
+    </div>
+
+    <!-- SUBCOUNTY TABLE -->
+    <div class="section-title">Subcounty Breakdown</div>
+    <div class="chart-card">
+      <div class="chart-title">Full Subcounty Summary</div>
+      <div class="table-wrap" id="sub-table"></div>
+    </div>
+
   </div>
-  <div class="dash-body">
-    <div class="kpi-strip" id="kpi-strip"></div>
-    <div class="section-title"><span>📍</span> Activity by Subcounty & CHP Performance</div>
-    <div class="grid-32" id="row1"></div>
-    <div class="section-title"><span>📊</span> Household Feedback & Services Delivered</div>
-    <div class="grid-3" id="row2"></div>
-    <div class="section-title"><span>👥</span> CHA Activity Summary</div>
-    <div class="grid-23" id="row3"></div>
-    <div class="section-title"><span>📋</span> Detailed Tables</div>
-    <div class="grid-2" id="row4"></div>
-    <div class="dash-footer">
-      Homa Bay County Community Health Program · Live data from KoboToolbox ·
-      Last refreshed: <span id="gen-time"></span>
-    </div>
+
+  <div class="footer">
+    Homa Bay County Community Health Programs · Data from KoboToolbox via Google Sheets · Auto-syncs every hour
+    <br>Last refreshed: <span id="footer-time"></span>
   </div>
 </div>
 
 <script>
-const KOBO_BASE  = 'https://eu.kobotoolbox.org';
-const UID_SHADOW = 'a8vDVe9DvPPbofduTUsXRk';
-const UID_SPOT   = 'ayaQtCSeEDhiUc3AfHGamW';
-// CORS proxy — routes request through a free proxy so GitHub Pages can reach KoboToolbox
-const PROXY      = 'https://corsproxy.io/?';
+// ─────────────────────────────────────────────────────────────
+// CONFIG — your published Google Sheet
+// ─────────────────────────────────────────────────────────────
+const SHEET_ID = "1zcB_oXLm8GTxySf7TE_1Bc1DZQPwhlNMwkJJaTQCauY";
 
+// Name maps for deduplication
+const SHADOW_NAME_MAP = {
+  "Calvince Wanyancha":"Calvine Wanyancha","Calvinece Wanyancha":"Calvine Wanyancha",
+  "Calcince  Wanyach":"Calvine Wanyancha","Peninah Omuga":"Penina Omuga",
+  "Omuga Penina":"Penina Omuga","Diana Anyango":"Diana Judith's Anyango",
+  "Dency":"Dency Opinde","Jane Atieno  Otae":"Jane Atieno Otae",
+  "Jackline  Achieng":"Jackline Achieng"
+};
+const SPOT_NAME_MAP = {
+  "Tabither":"Tabither Awuor","Glaire":"Claire Aloo","Stellar":"Stellar Matiku",
+  "Christabel Atieno":"Christabel Atieno Obunge","Juliet  Adoyo Peter":"Juliet Peter"
+};
+
+// Subcounty display colours
 const SUB_COLORS = {
-  'Rachuonyo South':'#1A5276','Rachuonyo North':'#1F618D','Rachuonyo East':'#2471A3',
-  'Suba North':'#1E8449','Suba South':'#148F77','Rangwe':'#884EA0',
-  'Homa Bay Town':'#CA6F1E','Ndhiwa':'#7B241C',
+  "Rachuonyo North":  "#1F618D",
+  "Rachuonyo South":  "#154360",
+  "Rachuonyo East":   "#2471A3",
+  "Suba North":       "#1E8449",
+  "Suba South":       "#148F77",
+  "Rangwe":           "#7D3C98",
+  "Homa Bay Town":    "#CA6F1E",
+  "Ndhiwa":           "#922B21",
 };
-const SAT_COLORS = {'Very satisfied':'#1ABC9C','Satisfied':'#117A65','Dissatisfied':'#C0392B'};
-const SVC_COLORS = ['#1F618D','#117A65','#884EA0','#CA6F1E','#C0392B','#2471A3'];
-const EFF_COLORS = {'Very clear':'#1ABC9C','Clear':'#117A65','Somewhat clear':'#CA6F1E','Not clear':'#C0392B'};
+const DEFAULT_COLOR = "#5D6D7E";
 
-let charts = [];
-let API_TOKEN = '';
-
-// ── INIT ──────────────────────────────────────────────────────
-window.onload = () => {
-  const saved = localStorage.getItem('kobo_token');
-  if (saved) { API_TOKEN = saved; refreshData(); }
-};
-
-function toggleVis() {
-  const inp = document.getElementById('token-input');
-  inp.type = inp.type === 'password' ? 'text' : 'password';
+// ─────────────────────────────────────────────────────────────
+// FETCH CSV from published Google Sheet
+// ─────────────────────────────────────────────────────────────
+function fetchCSV(sheetName) {
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+  return fetch(url).then(r => {
+    if (!r.ok) throw new Error("Failed to fetch sheet: " + sheetName);
+    return r.text();
+  }).then(parseCSV);
 }
 
-async function connect() {
-  const token = document.getElementById('token-input').value.trim();
-  if (!token) { showError('Please paste your API token.'); return; }
-  API_TOKEN = token;
-  if (document.getElementById('remember-token').checked) {
-    localStorage.setItem('kobo_token', token);
-  }
-  hideError();
-  await refreshData();
-}
-
-function logout() {
-  localStorage.removeItem('kobo_token');
-  API_TOKEN = '';
-  charts.forEach(c=>c.destroy()); charts=[];
-  showScreen('login');
-  document.getElementById('token-input').value = '';
-}
-
-// ── FETCH ─────────────────────────────────────────────────────
-async function fetchKobo(uid, label) {
-  setLoading(`Fetching ${label}...`, 'Please wait');
-  const target = `${KOBO_BASE}/api/v2/assets/${uid}/data/?format=json&limit=5000`;
-  const url    = PROXY + encodeURIComponent(target);
-  const res = await fetch(url, {
-    headers: {
-      'Authorization': `Token ${API_TOKEN}`,
-      'x-requested-with': 'XMLHttpRequest'
-    }
+function parseCSV(text) {
+  const lines = text.trim().split("\n").map(l => l.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(c => c.replace(/^"|"$/g,'').trim()));
+  const headers = lines[0];
+  return lines.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h,i) => obj[h] = row[i] || "");
+    return obj;
   });
-  if (res.status === 401 || res.status === 403) throw new Error('Invalid token or access denied');
-  if (!res.ok) throw new Error(`Server error: ${res.status}`);
-  const data = await res.json();
-  return data.results || [];
 }
 
-async function refreshData() {
-  showScreen('loading');
-  setLoading('Connecting to KoboToolbox...', 'Fetching your data');
+// ─────────────────────────────────────────────────────────────
+// CLEAN HELPERS
+// ─────────────────────────────────────────────────────────────
+function cleanName(name, map) {
+  const n = (name||"").trim().replace(/\b\w/g, c=>c.toUpperCase());
+  return map[n] || n;
+}
+function cleanSub(sub) {
+  return (sub||"").replace(/Sub County/i,'').replace(/subcounty/i,'').trim();
+}
+function countBy(arr, key) {
+  const out = {};
+  arr.forEach(r => { const k=r[key]||"Unknown"; out[k]=(out[k]||0)+1; });
+  return out;
+}
+function topN(obj, n=15) {
+  return Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,n);
+}
+
+// ─────────────────────────────────────────────────────────────
+// CHART INSTANCES (for destroy on re-render)
+// ─────────────────────────────────────────────────────────────
+let charts = {};
+function destroyChart(id) { if(charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+// ─────────────────────────────────────────────────────────────
+// LOAD & RENDER
+// ─────────────────────────────────────────────────────────────
+async function loadData() {
+  document.getElementById('loading').style.display='flex';
+  document.getElementById('dashboard').style.display='none';
+  document.getElementById('error-msg').style.display='none';
+
   try {
-    const [rawShadow, rawSpot] = await Promise.all([
-      fetchKobo(UID_SHADOW, 'Shadowing Tool'),
-      fetchKobo(UID_SPOT,   'Spot Check Tool'),
+    const [shadowRaw, spotRaw] = await Promise.all([
+      fetchCSV("Shadowing"),
+      fetchCSV("SpotCheck")
     ]);
-    const shadow = processShadow(rawShadow);
-    const spot   = processSpot(rawSpot);
-    buildDashboard(shadow, spot);
-    showScreen('dashboard');
-  } catch(e) {
-    console.error(e);
-    showScreen('login');
-    showError(`Connection failed: ${e.message}.<br>Check your token and try again.`);
+
+    // ── Find column names dynamically ──
+    const shadowCHACol  = Object.keys(shadowRaw[0]).find(k => /cha.name/i.test(k) || k==="shadowing_tool/cha_name") || "shadowing_tool/cha_name";
+    const shadowSubCol  = Object.keys(shadowRaw[0]).find(k => /subcounty/i.test(k)) || "shadowing_tool/subcounty";
+    const spotCHACol    = Object.keys(spotRaw[0]).find(k => /cha.name/i.test(k) || k==="spot_check_tool/cha_name") || "spot_check_tool/cha_name";
+    const spotSubCol    = Object.keys(spotRaw[0]).find(k => /subcounty/i.test(k)) || "spot_check_tool/subcounty";
+    const spotCHPCol    = Object.keys(spotRaw[0]).find(k => /chp.name/i.test(k)) || "spot_check_tool/chp_name";
+    const satCol        = Object.keys(spotRaw[0]).find(k => /satisfied/i.test(k) && /services/i.test(k)) || "";
+    const infoCol       = Object.keys(spotRaw[0]).find(k => /clear.*understandable/i.test(k)) || "";
+    const svcCol        = Object.keys(spotRaw[0]).find(k => /services.*expected/i.test(k)) || "";
+    const followCol     = Object.keys(spotRaw[0]).find(k => /follow.*up.*previous/i.test(k)) || "";
+    const suppliesCol   = Object.keys(spotRaw[0]).find(k => /supplies.*material/i.test(k)) || "";
+    const protocolCol   = Object.keys(spotRaw[0]).find(k => /adhere.*protocol/i.test(k)) || "";
+    const issueCol      = Object.keys(spotRaw[0]).find(k => /issues.*concerns/i.test(k)) || "";
+
+    // Service checkbox columns
+    const svcKeys = {
+      "Health Education":      Object.keys(spotRaw[0]).find(k=>/health.education/i.test(k) && !/group/i.test(k)) || "",
+      "Household Visit":       Object.keys(spotRaw[0]).find(k=>/household.visit/i.test(k)) || "",
+      "Referral":              Object.keys(spotRaw[0]).find(k=>/referral/i.test(k) && !/group/i.test(k)) || "",
+      "Follow Up":             Object.keys(spotRaw[0]).find(k=>/follow.up/i.test(k) && !/previous/i.test(k) && !/group/i.test(k)) || "",
+      "Nutrition Screening":   Object.keys(spotRaw[0]).find(k=>/nutrition/i.test(k)) || "",
+      "Immunization Follow-up":Object.keys(spotRaw[0]).find(k=>/immunization/i.test(k)) || "",
+    };
+
+    // ── Clean data ──
+    const shadow = shadowRaw.map(r => ({
+      cha: cleanName(r[shadowCHACol], SHADOW_NAME_MAP),
+      sub: cleanSub(r[shadowSubCol])
+    })).filter(r=>r.cha && r.cha!=="Nan");
+
+    const spot = spotRaw.map(r => ({
+      cha: cleanName(r[spotCHACol], SPOT_NAME_MAP),
+      chp: (r[spotCHPCol]||"").trim(),
+      sub: cleanSub(r[spotSubCol]),
+      satisfaction: r[satCol]||"",
+      infoYes: (r[infoCol]||"").toLowerCase()==="yes",
+      svcYes:  (r[svcCol]||"").toLowerCase()==="yes",
+      followYes:(r[followCol]||"").toLowerCase()==="yes",
+      suppliesYes:(r[suppliesCol]||"").toLowerCase()==="yes",
+      protocolYes:(r[protocolCol]||"").toLowerCase()==="yes",
+      issueYes:(r[issueCol]||"").toLowerCase()==="yes",
+      services: Object.fromEntries(Object.entries(svcKeys).map(([k,col])=>[k, (r[col]||"").toLowerCase()==="true"||(r[col]||"")==="1"]))
+    })).filter(r=>r.cha && r.cha!=="Nan");
+
+    const n = spot.length;
+
+    // ── KPIs ──
+    const kpis = [
+      { label:"Shadowings Conducted", value: shadow.length, color:"blue" },
+      { label:"Spot Checks Conducted", value: spot.length, color:"teal" },
+      { label:"Active CHAs (Shadowing)", value: new Set(shadow.map(r=>r.cha)).size, color:"purple" },
+      { label:"Active CHAs (Spot Check)", value: new Set(spot.map(r=>r.cha)).size, color:"green" },
+      { label:"CHPs Checked", value: new Set(spot.map(r=>r.chp).filter(Boolean)).size, color:"amber" },
+      { label:"Subcounties Active", value: new Set([...shadow.map(r=>r.sub),...spot.map(r=>r.sub)]).size, color:"teal2" },
+      { label:"Issues Raised", value: spot.filter(r=>r.issueYes).length, color:"red" },
+    ];
+
+    document.getElementById('kpi-grid').innerHTML = kpis.map(k=>`
+      <div class="kpi-card ${k.color}">
+        <div class="kpi-label">${k.label}</div>
+        <div class="kpi-value">${k.value}</div>
+      </div>`).join('');
+
+    // ── Subcounty combined chart ──
+    const shadowSub = countBy(shadow,'sub');
+    const spotSub   = countBy(spot,'sub');
+    const allSubs   = [...new Set([...Object.keys(shadowSub),...Object.keys(spotSub)])].sort((a,b)=>(shadowSub[b]||0)+(spotSub[b]||0) - (shadowSub[a]||0)-(spotSub[a]||0));
+
+    destroyChart('subcounty');
+    charts['subcounty'] = new Chart(document.getElementById('subcountyChart'), {
+      type:'bar',
+      data:{
+        labels: allSubs,
+        datasets:[
+          { label:'Shadowings', data: allSubs.map(s=>shadowSub[s]||0), backgroundColor: '#1F618D', borderRadius:4 },
+          { label:'Spot Checks', data: allSubs.map(s=>spotSub[s]||0),  backgroundColor: '#0E7C7B', borderRadius:4 }
+        ]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ position:'top', labels:{ font:{size:11}, boxWidth:12 } } },
+        scales:{
+          x:{ grid:{display:false}, ticks:{font:{size:11}} },
+          y:{ beginAtZero:true, grid:{color:'#EEE'}, ticks:{font:{size:11}} }
+        }
+      }
+    });
+
+    // ── Performance indicators ──
+    const perf = [
+      { label:"Information Clear & Understandable", pct: round(spot.filter(r=>r.infoYes).length/n*100) },
+      { label:"Services Provided as Expected",       pct: round(spot.filter(r=>r.svcYes).length/n*100) },
+      { label:"Follow-up on Previous Visits",        pct: round(spot.filter(r=>r.followYes).length/n*100) },
+      { label:"Had Necessary Supplies",              pct: round(spot.filter(r=>r.suppliesYes).length/n*100) },
+      { label:"Adhered to Protocols",                pct: round(spot.filter(r=>r.protocolYes).length/n*100) },
+    ];
+
+    document.getElementById('perf-list').innerHTML = perf.map(p=>{
+      const col = p.pct>=90?'#1A7A4A':p.pct>=75?'#D68910':'#C0392B';
+      return `<div class="perf-item">
+        <div class="perf-header">
+          <span class="perf-label">${p.label}</span>
+          <span class="perf-pct" style="color:${col}">${p.pct}%</span>
+        </div>
+        <div class="perf-bar-bg">
+          <div class="perf-bar-fill" style="width:${p.pct}%;background:${col}"></div>
+        </div>
+      </div>`;
+    }).join('');
+
+    // ── Satisfaction pie ──
+    const satCounts = countBy(spot.map(r=>({satisfaction:r.satisfaction})),'satisfaction');
+    const satColors = {'Very satisfied':'#1A7A4A','Satisfied':'#0E7C7B','Dissatisfied':'#C0392B','Neutral':'#D68910'};
+    destroyChart('sat');
+    charts['sat'] = new Chart(document.getElementById('satChart'),{
+      type:'doughnut',
+      data:{
+        labels: Object.keys(satCounts),
+        datasets:[{ data: Object.values(satCounts), backgroundColor: Object.keys(satCounts).map(k=>satColors[k]||'#BDC3C7'), borderWidth:2, borderColor:'#fff' }]
+      },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right', labels:{ font:{size:11}, boxWidth:12 } } } }
+    });
+
+    // ── Services bar ──
+    const svcCounts = Object.fromEntries(Object.keys(svcKeys).map(k=>[k, spot.filter(r=>r.services[k]).length]));
+    const svcSorted = Object.entries(svcCounts).sort((a,b)=>b[1]-a[1]);
+    destroyChart('svc');
+    charts['svc'] = new Chart(document.getElementById('svcChart'),{
+      type:'bar',
+      data:{
+        labels: svcSorted.map(s=>s[0]),
+        datasets:[{ label:'Count', data: svcSorted.map(s=>s[1]), backgroundColor:'#0E7C7B', borderRadius:5 }]
+      },
+      options:{
+        indexAxis:'y', responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false} },
+        scales:{
+          x:{ beginAtZero:true, grid:{color:'#EEE'}, ticks:{font:{size:11}} },
+          y:{ grid:{display:false}, ticks:{font:{size:11}} }
+        }
+      }
+    });
+
+    // ── CHA tables ──
+    const shadowCHACounts = countBy(shadow,'cha');
+    const shadowSubMap = {};
+    shadow.forEach(r=>{ shadowSubMap[r.cha]=r.sub; });
+
+    document.getElementById('shadow-table').innerHTML = buildTable(
+      ['#','CHA Name','Subcounty','Shadowings'],
+      topN(shadowCHACounts,15).map(([name,cnt],i)=>[i+1, name, shadowSubMap[name]||'', cnt])
+    );
+
+    const spotCHACounts = countBy(spot,'cha');
+    const spotSubMap = {};
+    spot.forEach(r=>{ spotSubMap[r.cha]=r.sub; });
+
+    document.getElementById('spot-table').innerHTML = buildTable(
+      ['#','CHA Name','Subcounty','Spot Checks'],
+      topN(spotCHACounts,15).map(([name,cnt],i)=>[i+1, name, spotSubMap[name]||'', cnt])
+    );
+
+    // ── Subcounty summary table ──
+    const subRows = allSubs.map(sub=>[
+      sub,
+      shadowSub[sub]||0,
+      spotSub[sub]||0,
+      (shadowSub[sub]||0)+(spotSub[sub]||0)
+    ]).sort((a,b)=>b[3]-a[3]);
+
+    const totSh = subRows.reduce((s,r)=>s+r[1],0);
+    const totSp = subRows.reduce((s,r)=>s+r[2],0);
+
+    document.getElementById('sub-table').innerHTML = buildTable(
+      ['Subcounty','Shadowings','Spot Checks','Total Activity'],
+      subRows,
+      ['Subcounty','Shadowings','Spot Checks','Total Activity'],
+      [totSh, totSp, totSh+totSp]
+    );
+
+    // ── Update timestamps ──
+    const now = new Date().toLocaleString('en-KE',{dateStyle:'medium',timeStyle:'short'});
+    document.getElementById('last-updated').textContent = 'Last updated: ' + now;
+    document.getElementById('footer-time').textContent = now;
+
+    document.getElementById('loading').style.display='none';
+    document.getElementById('dashboard').style.display='block';
+
+  } catch(err) {
+    document.getElementById('loading').style.display='none';
+    document.getElementById('error-msg').style.display='block';
+    document.getElementById('error-msg').innerHTML = `
+      <strong>⚠️ Could not load data</strong><br>
+      ${err.message}<br><br>
+      Make sure your Google Sheet is published: <em>File → Share → Publish to web → Publish</em>
+    `;
+    console.error(err);
   }
 }
 
-// ── CLEAN & PROCESS ───────────────────────────────────────────
-function cleanName(n) {
-  return (n||'').trim().replace(/\s+/g,' ')
-    .split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(' ');
-}
-function cleanSub(s) {
-  return (s||'').replace(/\s*sub\s*county\s*/i,'').trim();
-}
-function g(r,...keys) {
-  for (const k of keys) { if (r[k] !== undefined && r[k] !== null && r[k] !== '') return r[k]; }
-  return '';
-}
-
-function processShadow(raw) {
-  return raw.map(r => ({
-    cha: cleanName(g(r,'CHA_Name','CHA Name:','CHA Name')),
-    sub: cleanSub(g(r,'Subcounty','subcounty')),
-  })).filter(r => r.cha && r.cha.toLowerCase() !== 'nan');
+// ── Build HTML table ──
+function buildTable(headers, rows, footerLabels, footerVals) {
+  let html = '<table><thead><tr>' + headers.map(h=>`<th>${h}</th>`).join('') + '</tr></thead><tbody>';
+  rows.forEach(row => {
+    html += '<tr>' + row.map((cell,i) => {
+      if (i===0 && isNaN(cell)) return `<td class="sub">${cell}</td>`;
+      if (typeof cell==='number' || (!isNaN(cell)&&cell!=='')) return `<td class="num">${cell}</td>`;
+      return `<td>${cell}</td>`;
+    }).join('') + '</tr>';
+  });
+  html += '</tbody>';
+  if (footerVals) {
+    html += '<tfoot><tr class="tfoot-row"><td><strong>TOTAL</strong></td>' +
+      footerVals.map(v=>`<td class="num"><strong>${v}</strong></td>`).join('') + '</tr></tfoot>';
+  }
+  return html + '</table>';
 }
 
-function processSpot(raw) {
-  return raw.map(r => ({
-    cha: cleanName(g(r,'CHA_Name','CHA Name:','CHA Name')),
-    chp: cleanName(g(r,'CHP_Name','CHP Name:','CHP Name')),
-    sub: cleanSub(g(r,'Subcounty','subcounty')),
-    chu: (g(r,'Community_Health_Unit__CHU_','Community Health Unit (CHU)')||'').trim(),
-    ward:(g(r,'Ward')||'').trim(),
-    infoClr:   g(r,'Was_the_information_provided_by_the_CHP_clear_and_understandable_','Was the information provided by the CHP clear and understandable?') === 'Yes',
-    svcProv:   g(r,'Did_the_CHP_provide_the_necessary_health_services_as_expected_','Did the CHP provide the necessary health services as expected?') === 'Yes',
-    followUp:  g(r,'Did_the_CHP_follow_up_on_previous_visits_and_recommendations_','Did the CHP follow up on previous visits and recommendations?') === 'Yes',
-    supplies:  g(r,'Did_the_CHP_have_the_necessary_supplies_and_materials_during_their_visit_','Did the CHP have the necessary supplies and materials during their visit?') === 'Yes',
-    protocols: g(r,'Did_the_CHP_adhere_to_health_protocols_and_guidelines_during_their_visit_','Did the CHP adhere to health protocols and guidelines during their visit?') === 'Yes',
-    issues:    g(r,'Did_you_face_any_issues_or_have_concerns_with_the_services_provided_','Did you face any issues or have concerns with the services provided?') === 'Yes',
-    satisfaction:  (g(r,'How_satisfied_are_you_with_the_services_provided_by_the_CHP_','How satisfied are you with the services provided by the CHP?')||'').trim(),
-    effectiveness: (g(r,'How_effective_was_the_CHP_s_interaction_and_communication_with_the_household_',"How effective was the CHP's interaction and communication with the household?")||'').trim(),
-    childrenU5: g(r,'3__Children_Under_5_','3. Children Under 5:') === 'Yes',
-    svcEdu: +!!(g(r,'1_Services_Provided_by_CHP_in_the_last_3_months__Check_all_that_apply___Health_Education','1. Services Provided by CHP in the last 3 months (Check all that apply):/Health Education') == 1),
-    svcHHV: +!!(g(r,'1_Services_Provided_by_CHP_in_the_last_3_months__Check_all_that_apply___Household_Visit','1. Services Provided by CHP in the last 3 months (Check all that apply):/Household Visit') == 1),
-    svcRef: +!!(g(r,'1_Services_Provided_by_CHP_in_the_last_3_months__Check_all_that_apply___Referral','1. Services Provided by CHP in the last 3 months (Check all that apply):/Referral') == 1),
-    svcFol: +!!(g(r,'1_Services_Provided_by_CHP_in_the_last_3_months__Check_all_that_apply___Follow_Up','1. Services Provided by CHP in the last 3 months (Check all that apply):/Follow Up') == 1),
-    svcNut: +!!(g(r,'1_Services_Provided_by_CHP_in_the_last_3_months__Check_all_that_apply___Nutrition_Screening','1. Services Provided by CHP in the last 3 months (Check all that apply):/Nutrition Screening') == 1),
-    svcImm: +!!(g(r,'1_Services_Provided_by_CHP_in_the_last_3_months__Check_all_that_apply___Immunization_Follow_up','1. Services Provided by CHP in the last 3 months (Check all that apply):/Immunization Follow-up') == 1),
-  })).filter(r => r.cha && r.cha.toLowerCase() !== 'nan');
-}
+function round(n) { return Math.round(n*10)/10; }
 
-// ── HELPERS ───────────────────────────────────────────────────
-function countBy(arr, key) {
-  const m={};
-  arr.forEach(r=>{const v=r[key]||'Unknown';m[v]=(m[v]||0)+1;});
-  return m;
-}
-function uniqueBy(arr, key) {
-  return [...new Set(arr.map(r=>r[key]).filter(Boolean))];
-}
-function showScreen(name) {
-  document.getElementById('login-screen').style.display   = name==='login'   ? 'flex'  : 'none';
-  document.getElementById('loading-screen').style.display = name==='loading' ? 'flex'  : 'none';
-  document.getElementById('dashboard').style.display      = name==='dashboard'? 'block' : 'none';
-}
-function setLoading(t,s) {
-  document.getElementById('loading-text').textContent=t;
-  document.getElementById('loading-sub').textContent=s;
-}
-function showError(msg) {
-  const el=document.getElementById('login-error');
-  el.innerHTML=msg; el.style.display='block';
-}
-function hideError() {
-  document.getElementById('login-error').style.display='none';
-}
-
-// ── BUILD DASHBOARD ───────────────────────────────────────────
-function buildDashboard(shadow, spot) {
-  charts.forEach(c=>c.destroy()); charts=[];
-
-  const totShadow  = shadow.length;
-  const totSpot    = spot.length;
-  const chasShadow = uniqueBy(shadow,'cha').length;
-  const chasSpot   = uniqueBy(spot,'cha').length;
-  const totCHPs    = uniqueBy(spot,'chp').length;
-  const totCHUs    = uniqueBy(spot,'chu').length;
-  const totSubs    = [...new Set([...shadow.map(r=>r.sub),...spot.map(r=>r.sub)])].filter(Boolean).length;
-  const issues     = spot.filter(r=>r.issues).length;
-  const childrenU5 = spot.filter(r=>r.childrenU5).length;
-
-  const perf = [
-    {label:'Info clear & understandable',    yes:spot.filter(r=>r.infoClr).length},
-    {label:'Services provided as expected',  yes:spot.filter(r=>r.svcProv).length},
-    {label:'Followed up on previous visits', yes:spot.filter(r=>r.followUp).length},
-    {label:'Had necessary supplies',         yes:spot.filter(r=>r.supplies).length},
-    {label:'Adhered to health protocols',    yes:spot.filter(r=>r.protocols).length},
-  ];
-
-  const sat  = countBy(spot,'satisfaction');
-  const eff  = countBy(spot,'effectiveness');
-  const svcs = [
-    {label:'Health Education',      cnt:spot.reduce((a,r)=>a+r.svcEdu,0)},
-    {label:'Household Visit',       cnt:spot.reduce((a,r)=>a+r.svcHHV,0)},
-    {label:'Immunization Follow-up',cnt:spot.reduce((a,r)=>a+r.svcImm,0)},
-    {label:'Follow Up',             cnt:spot.reduce((a,r)=>a+r.svcFol,0)},
-    {label:'Nutrition Screening',   cnt:spot.reduce((a,r)=>a+r.svcNut,0)},
-    {label:'Referral',              cnt:spot.reduce((a,r)=>a+r.svcRef,0)},
-  ].sort((a,b)=>b.cnt-a.cnt);
-
-  const shadowBySub = countBy(shadow,'sub');
-  const spotBySub   = countBy(spot,'sub');
-  const allSubsSorted = [...new Set([...Object.keys(shadowBySub),...Object.keys(spotBySub)])]
-    .sort((a,b)=>(shadowBySub[b]||0)+(spotBySub[b]||0)-(shadowBySub[a]||0)-(spotBySub[a]||0));
-
-  const allCHAs = [...new Set([...shadow.map(r=>r.cha),...spot.map(r=>r.cha)])].filter(Boolean);
-  const shByCHA = countBy(shadow,'cha');
-  const spByCHA = countBy(spot,'cha');
-  const chaRows = allCHAs.map(c=>({
-    name:c, shadow:shByCHA[c]||0, spot:spByCHA[c]||0,
-    total:(shByCHA[c]||0)+(spByCHA[c]||0),
-    sub:shadow.find(r=>r.cha===c)?.sub||spot.find(r=>r.cha===c)?.sub||'',
-  })).sort((a,b)=>b.total-a.total);
-
-  document.getElementById('top-sub').textContent =
-    `Homa Bay County · ${totShadow+totSpot} records · ${new Date().toLocaleTimeString()}`;
-  document.getElementById('gen-time').textContent = new Date().toLocaleString();
-
-  // KPIs
-  document.getElementById('kpi-strip').innerHTML = [
-    {label:'Shadowings',          value:totShadow, sub:`${chasShadow} CHAs active`,        icon:'📋',color:'#1F618D'},
-    {label:'Spot Checks',         value:totSpot,   sub:`${chasSpot} CHAs conducting`,       icon:'✅',color:'#117A65'},
-    {label:'CHPs Checked',        value:totCHPs,   sub:`${totCHUs} CHUs covered`,           icon:'👤',color:'#7D3C98'},
-    {label:'Subcounties',         value:totSubs,   sub:`${totCHUs} community health units`, icon:'📍',color:'#CA6F1E'},
-    {label:'Households w/ Issues',value:issues,    sub:`${childrenU5} HHs w/ children U5`, icon:'⚠️',color:'#C0392B'},
-  ].map(k=>`<div class="kpi-card fade-up" data-icon="${k.icon}" style="border-left-color:${k.color}">
-    <div class="kpi-label">${k.label}</div>
-    <div class="kpi-value" style="color:${k.color}">${k.value}</div>
-    <div class="kpi-sub">${k.sub}</div>
-  </div>`).join('');
-
-  // Row 1
-  const grandTot=totShadow+totSpot;
-  const maxSh=Math.max(...Object.values(shadowBySub),1);
-  const maxSp=Math.max(...Object.values(spotBySub),1);
-  document.getElementById('row1').innerHTML=`
-    <div class="card">
-      <div class="card-title"><span class="dot" style="background:#1F618D"></span>Activity by Subcounty</div>
-      <div class="table-scroll"><table class="sub-table">
-        <thead><tr><th>Subcounty</th><th>Shadow</th><th>Spot</th><th>Total</th><th>%</th><th>Shadow</th><th>Spot</th></tr></thead>
-        <tbody>
-          ${allSubsSorted.map(sub=>{
-            const sh=shadowBySub[sub]||0,sp=spotBySub[sub]||0,tot=sh+sp;
-            const pct=grandTot?((tot/grandTot)*100).toFixed(1):0;
-            const col=SUB_COLORS[sub]||'#555';
-            return `<tr>
-              <td><span class="sub-dot" style="background:${col}"></span><strong>${sub}</strong></td>
-              <td style="color:#1F618D;font-weight:600">${sh}</td>
-              <td style="color:#117A65;font-weight:600">${sp}</td>
-              <td style="font-weight:700">${tot}</td>
-              <td style="color:${col};font-weight:700">${pct}%</td>
-              <td><span class="mini-bar-bg"><span class="mini-bar-fill" style="background:#1F618D;width:${Math.round(sh/maxSh*56)}px"></span></span></td>
-              <td><span class="mini-bar-bg"><span class="mini-bar-fill" style="background:#117A65;width:${Math.round(sp/maxSp*56)}px"></span></span></td>
-            </tr>`;
-          }).join('')}
-          <tr style="background:#f8f9fb">
-            <td><strong>TOTAL</strong></td>
-            <td style="font-weight:700;color:#1F618D">${totShadow}</td>
-            <td style="font-weight:700;color:#117A65">${totSpot}</td>
-            <td style="font-weight:700">${grandTot}</td>
-            <td style="font-weight:700">100%</td><td></td><td></td>
-          </tr>
-        </tbody>
-      </table></div>
-    </div>
-    <div class="card">
-      <div class="card-title"><span class="dot" style="background:#117A65"></span>CHP Performance Indicators</div>
-      ${perf.map(p=>{
-        const pct=totSpot?((p.yes/totSpot)*100).toFixed(1):0;
-        const col=+pct>=90?'#1E8449':+pct>=75?'#CA6F1E':'#C0392B';
-        return `<div class="perf-row">
-          <div class="perf-label">${p.label}</div>
-          <div class="perf-pct" style="color:${col}">${pct}%</div>
-          <div class="perf-bar-bg"><div class="perf-bar-fill" style="width:${pct}%;background:${col}"></div></div>
-          <div style="font-size:10px;color:var(--muted);width:50px;text-align:right">${p.yes}/${totSpot}</div>
-        </div>`;
-      }).join('')}
-    </div>`;
-
-  // Row 2
-  const satOrder=['Very satisfied','Satisfied','Dissatisfied'];
-  const effOrder=['Very clear','Clear','Somewhat clear','Not clear'];
-  const maxSvc=Math.max(...svcs.map(s=>s.cnt),1);
-  document.getElementById('row2').innerHTML=`
-    <div class="card">
-      <div class="card-title"><span class="dot" style="background:#1ABC9C"></span>Household Satisfaction</div>
-      ${satOrder.map(r=>{
-        const cnt=sat[r]||0,pct=totSpot?((cnt/totSpot)*100).toFixed(1):0;
-        return `<div class="sat-row">
-          <div class="sat-label">${r}</div>
-          <div class="sat-bar-bg"><div class="sat-bar-fill" style="width:${pct}%;background:${SAT_COLORS[r]||'#555'}">${cnt>2?cnt:''}</div></div>
-          <div class="sat-count">${pct}%</div>
-        </div>`;
-      }).join('')}
-      <div class="chart-wrap-sm" style="margin-top:14px"><canvas id="chartSat"></canvas></div>
-    </div>
-    <div class="card">
-      <div class="card-title"><span class="dot" style="background:#1F618D"></span>Services Provided by CHPs</div>
-      ${svcs.map((s,i)=>{
-        const pct=totSpot?((s.cnt/totSpot)*100).toFixed(1):0;
-        return `<div class="svc-row">
-          <div class="svc-label">${s.label}</div>
-          <div class="svc-bar-bg"><div class="svc-bar-fill" style="width:${(s.cnt/maxSvc*100).toFixed(0)}%;background:${SVC_COLORS[i]}">${s.cnt}</div></div>
-          <div class="svc-pct">${pct}%</div>
-        </div>`;
-      }).join('')}
-    </div>
-    <div class="card">
-      <div class="card-title"><span class="dot" style="background:#CA6F1E"></span>CHP Communication Effectiveness</div>
-      ${effOrder.map(r=>{
-        const cnt=eff[r]||0,pct=totSpot?((cnt/totSpot)*100).toFixed(1):0;
-        return `<div class="sat-row">
-          <div class="sat-label">${r}</div>
-          <div class="sat-bar-bg"><div class="sat-bar-fill" style="width:${pct}%;background:${EFF_COLORS[r]||'#888'}">${cnt>2?cnt:''}</div></div>
-          <div class="sat-count">${pct}%</div>
-        </div>`;
-      }).join('')}
-      <div class="chart-wrap-sm" style="margin-top:14px"><canvas id="chartEff"></canvas></div>
-    </div>`;
-
-  // Row 3
-  const topCHAs=chaRows.slice(0,20);
-  document.getElementById('row3').innerHTML=`
-    <div class="card">
-      <div class="card-title"><span class="dot" style="background:#0E6655"></span>CHA Activity — Top ${topCHAs.length}</div>
-      <div class="table-scroll"><table class="cha-table">
-        <thead><tr><th>#</th><th>CHA Name</th><th>Subcounty</th><th>Shadow</th><th>Spot</th><th>Total</th><th>Type</th></tr></thead>
-        <tbody>${topCHAs.map((c,i)=>{
-          const type=c.shadow>0&&c.spot>0?'<span class="chip chip-both">Both</span>':
-                     c.shadow>0?'<span class="chip chip-blue">Shadow</span>':'<span class="chip chip-teal">Spot</span>';
-          return `<tr>
-            <td style="color:var(--muted)">${i+1}</td>
-            <td style="font-weight:600;text-align:left">${c.name}</td>
-            <td style="text-align:left;color:${SUB_COLORS[c.sub]||'#555'};font-size:11px">${c.sub}</td>
-            <td>${c.shadow||'-'}</td><td>${c.spot||'-'}</td>
-            <td style="font-weight:700">${c.total}</td><td>${type}</td>
-          </tr>`;
-        }).join('')}</tbody>
-      </table></div>
-    </div>
-    <div class="card">
-      <div class="card-title"><span class="dot" style="background:#2471A3"></span>Activity by Subcounty (Chart)</div>
-      <div class="chart-wrap"><canvas id="chartSub"></canvas></div>
-      <div style="margin-top:16px">
-        <div class="card-title" style="margin-bottom:10px"><span class="dot" style="background:#117A65"></span>All CHAs at a Glance</div>
-        <div class="summary-pills">${chaRows.map(c=>`<span class="pill"><strong>${c.name.split(' ')[0]}</strong> ${c.total}</span>`).join('')}</div>
-      </div>
-    </div>`;
-
-  // Row 4
-  const chpMap={};
-  spot.forEach(r=>{if(!chpMap[r.chp])chpMap[r.chp]={cha:r.cha,sub:r.sub,cnt:0};chpMap[r.chp].cnt++;});
-  const chpRows=Object.entries(chpMap).sort((a,b)=>b[1].cnt-a[1].cnt);
-  document.getElementById('row4').innerHTML=`
-    <div class="card">
-      <div class="card-title"><span class="dot" style="background:#1F618D"></span>All CHAs (${chaRows.length})</div>
-      <div class="table-scroll"><table class="cha-table">
-        <thead><tr><th>#</th><th>CHA Name</th><th>Subcounty</th><th>Shadowings</th><th>Spot Checks</th><th>Total</th></tr></thead>
-        <tbody>${chaRows.map((c,i)=>`<tr>
-          <td style="color:var(--muted)">${i+1}</td>
-          <td style="font-weight:600;text-align:left">${c.name}</td>
-          <td style="text-align:left;color:${SUB_COLORS[c.sub]||'#555'};font-size:11px">${c.sub}</td>
-          <td style="color:#1F618D;font-weight:${c.shadow?600:400}">${c.shadow||'—'}</td>
-          <td style="color:#117A65;font-weight:${c.spot?600:400}">${c.spot||'—'}</td>
-          <td style="font-weight:700">${c.total}</td>
-        </tr>`).join('')}</tbody>
-      </table></div>
-    </div>
-    <div class="card">
-      <div class="card-title"><span class="dot" style="background:#117A65"></span>Spot Checks by CHP (${totCHPs})</div>
-      <div class="table-scroll"><table class="cha-table">
-        <thead><tr><th>#</th><th>CHP Name</th><th>CHA Supervisor</th><th>Subcounty</th><th>Checks</th></tr></thead>
-        <tbody>${chpRows.map(([chp,v],i)=>`<tr>
-          <td style="color:var(--muted)">${i+1}</td>
-          <td style="font-weight:600;text-align:left">${chp}</td>
-          <td style="text-align:left;font-size:11px">${v.cha}</td>
-          <td style="text-align:left;color:${SUB_COLORS[v.sub]||'#555'};font-size:11px">${v.sub}</td>
-          <td style="font-weight:700">${v.cnt}</td>
-        </tr>`).join('')}</tbody>
-      </table></div>
-    </div>`;
-
-  // Charts
-  setTimeout(()=>{
-    const satLabels=satOrder.filter(s=>sat[s]);
-    charts.push(new Chart(document.getElementById('chartSat'),{
-      type:'doughnut',
-      data:{labels:satLabels,datasets:[{data:satLabels.map(s=>sat[s]||0),backgroundColor:satLabels.map(s=>SAT_COLORS[s]||'#ccc'),borderWidth:2,borderColor:'#fff'}]},
-      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10},padding:8}}}}
-    }));
-    const effLabels=effOrder.filter(e=>eff[e]);
-    charts.push(new Chart(document.getElementById('chartEff'),{
-      type:'doughnut',
-      data:{labels:effLabels,datasets:[{data:effLabels.map(e=>eff[e]||0),backgroundColor:effLabels.map(e=>EFF_COLORS[e]||'#ccc'),borderWidth:2,borderColor:'#fff'}]},
-      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10},padding:8}}}}
-    }));
-    charts.push(new Chart(document.getElementById('chartSub'),{
-      type:'bar',
-      data:{labels:allSubsSorted,datasets:[
-        {label:'Shadowings', data:allSubsSorted.map(s=>shadowBySub[s]||0),backgroundColor:'#2471A3',borderRadius:4},
-        {label:'Spot Checks',data:allSubsSorted.map(s=>spotBySub[s]||0),backgroundColor:'#1ABC9C',borderRadius:4},
-      ]},
-      options:{responsive:true,maintainAspectRatio:false,
-        scales:{x:{ticks:{font:{size:9}},grid:{display:false}},y:{ticks:{font:{size:9}},grid:{color:'#eef0f2'}}},
-        plugins:{legend:{position:'bottom',labels:{font:{size:10},padding:8}}}}
-    }));
-  },100);
-}
+// ── Init ──
+loadData();
 </script>
 </body>
 </html>
