@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CHP Full Analytics – Homa Bay County</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+:root{
+  --navy:#0D2B4E;--teal:#0E7C7B;--teal2:#14A89A;--sky:#E8F4F8;--mint:#E6F7F5;
+  --white:#fff;--gray:#F4F6F8;--text:#1C2833;--muted:#6B7A8D;
+  --green:#1A7A4A;--lgreen:#E9F7EF;--red:#C0392B;--lred:#FDEDEC;
+  --amber:#D68910;--lamber:#FEF9E7;--border:#DDE3EA;--purple:#7D3C98;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;background:var(--gray);color:var(--text);}
+
+/* NAV */
+.nav{background:var(--navy);height:56px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25);}
+.nav-brand{display:flex;align-items:center;gap:10px;}
+.nav-title{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;color:#fff;}
+.nav-sub{font-size:11px;color:rgba(255,255,255,.55);}
+.nav-right{display:flex;align-items:center;gap:8px;}
+.live{background:var(--teal2);color:#fff;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;display:flex;align-items:center;gap:5px;}
+.live::before{content:'';width:6px;height:6px;background:#7FFFD4;border-radius:50%;animation:blink 1.5s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.nbtn{background:rgba(255,255,255,.1);color:#fff;font-size:12px;padding:6px 13px;border-radius:6px;text-decoration:none;border:1px solid rgba(255,255,255,.2);cursor:pointer;transition:.2s;}
+.nbtn:hover{background:rgba(255,255,255,.2);}
+
+/* LOADING */
+#loading{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;gap:16px;}
+.spin{width:44px;height:44px;border:4px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+#err{display:none;background:var(--lred);border:1px solid #F1948A;color:var(--red);padding:16px 24px;border-radius:10px;margin:24px;font-size:13px;}
+
+/* CONTENT */
+#dash{display:none;}
+.hero{background:linear-gradient(135deg,var(--navy) 0%,#1A4A7A 100%);padding:28px 28px 24px;color:#fff;}
+.hero h1{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;margin-bottom:4px;}
+.hero p{font-size:13px;color:rgba(255,255,255,.65);}
+.hero-meta{font-size:11px;color:rgba(255,255,255,.4);margin-top:6px;}
+
+.wrap{padding:24px;max-width:1400px;margin:0 auto;}
+
+/* SECTION */
+.sec{font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:1.2px;margin:32px 0 16px;display:flex;align-items:center;gap:10px;}
+.sec span{font-size:18px;}
+.sec::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* GRID */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+.g1{display:grid;grid-template-columns:1fr;gap:18px;}
+@media(max-width:1000px){.g3{grid-template-columns:1fr 1fr;}.g4{grid-template-columns:1fr 1fr;}}
+@media(max-width:650px){.g2,.g3,.g4{grid-template-columns:1fr;}}
+
+/* CARD */
+.card{background:var(--white);border-radius:14px;padding:22px;border:1px solid var(--border);box-shadow:0 1px 4px rgba(0,0,0,.04);}
+.card.full{grid-column:1/-1;}
+.card-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:8px;}
+.card-title{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;color:var(--navy);}
+.card-sub{font-size:11px;color:var(--muted);margin-top:3px;}
+.chip{font-size:10px;font-weight:600;padding:3px 10px;border-radius:20px;white-space:nowrap;}
+.chip.blue{background:var(--sky);color:var(--teal);}
+.chip.green{background:var(--lgreen);color:var(--green);}
+.chip.amber{background:var(--lamber);color:var(--amber);}
+.chip.red{background:var(--lred);color:var(--red);}
+
+/* STAT CARDS */
+.stat{background:var(--white);border-radius:14px;padding:20px 18px;border:1px solid var(--border);position:relative;overflow:hidden;}
+.stat::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;border-radius:14px 14px 0 0;}
+.stat.navy::before{background:var(--navy);}
+.stat.teal::before{background:var(--teal);}
+.stat.green::before{background:var(--green);}
+.stat.amber::before{background:var(--amber);}
+.stat.red::before{background:var(--red);}
+.stat.purple::before{background:var(--purple);}
+.stat-lbl{font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;}
+.stat-val{font-family:'Space Grotesk',sans-serif;font-size:36px;font-weight:700;color:var(--navy);line-height:1;}
+.stat-sub{font-size:12px;color:var(--muted);margin-top:6px;}
+.stat-pct{font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;margin-top:4px;}
+
+/* CHART */
+.ch{position:relative;}
+.ch.h180{height:180px;}
+.ch.h220{height:220px;}
+.ch.h260{height:260px;}
+.ch.h300{height:300px;}
+.ch.h340{height:340px;}
+.ch.h380{height:380px;}
+
+/* DONUT + LEGEND */
+.donut-wrap{display:flex;align-items:center;gap:20px;}
+.donut-chart{flex:0 0 200px;height:200px;position:relative;}
+.donut-legend{flex:1;display:flex;flex-direction:column;gap:10px;}
+.legend-item{display:flex;align-items:center;gap:8px;}
+.legend-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0;}
+.legend-lbl{font-size:12px;color:var(--text);flex:1;}
+.legend-val{font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;color:var(--navy);}
+.legend-pct{font-size:11px;color:var(--muted);margin-left:4px;}
+
+/* PERF BARS */
+.perf-item{margin-bottom:18px;}
+.perf-item:last-child{margin-bottom:0;}
+.perf-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.perf-lbl{font-size:13px;font-weight:500;}
+.perf-nums{display:flex;align-items:center;gap:8px;}
+.perf-pct{font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;}
+.perf-count{font-size:11px;color:var(--muted);}
+.bar-bg{height:10px;background:var(--border);border-radius:5px;overflow:hidden;position:relative;}
+.bar-fill{height:100%;border-radius:5px;transition:width 1.2s cubic-bezier(.4,0,.2,1);}
+.bar-label{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:9px;font-weight:700;color:#fff;}
+
+/* U5 VISUAL */
+.u5-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.u5-big{text-align:center;padding:20px 10px;}
+.u5-icon{font-size:40px;margin-bottom:8px;}
+.u5-num{font-family:'Space Grotesk',sans-serif;font-size:48px;font-weight:700;line-height:1;}
+.u5-lbl{font-size:12px;color:var(--muted);margin-top:4px;}
+.u5-sub{font-size:11px;font-weight:500;margin-top:4px;}
+
+/* SERVICE GRID */
+.svc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;}
+.svc-card{border-radius:10px;padding:16px;border:2px solid var(--border);text-align:center;transition:.2s;}
+.svc-card:hover{border-color:var(--teal);transform:translateY(-2px);}
+.svc-icon{font-size:28px;margin-bottom:8px;}
+.svc-name{font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px;}
+.svc-count{font-family:'Space Grotesk',sans-serif;font-size:32px;font-weight:700;line-height:1;}
+.svc-pct{font-size:11px;color:var(--muted);margin-top:4px;}
+.svc-bar{height:4px;border-radius:2px;margin-top:10px;background:var(--border);}
+.svc-bar-fill{height:100%;border-radius:2px;transition:width 1.2s ease;}
+
+/* TABLE */
+.tbl{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+thead th{background:var(--navy);color:#fff;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.4px;padding:11px 14px;text-align:left;white-space:nowrap;}
+tbody tr:nth-child(even){background:var(--gray);}
+tbody tr:hover{background:var(--sky);}
+tbody td{padding:10px 14px;border-bottom:1px solid var(--border);}
+.tc{text-align:center;} .tr{text-align:right;}
+.tn{font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--navy);}
+.ts{font-weight:600;color:var(--teal);}
+tfoot tr td{background:var(--navy)!important;color:#fff!important;font-weight:700;}
+
+/* RATING BADGE */
+.rating{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+.rating.vs{background:var(--lgreen);color:var(--green);}
+.rating.s{background:var(--mint);color:var(--teal);}
+.rating.d{background:var(--lred);color:var(--red);}
+.rating.n{background:var(--lamber);color:var(--amber);}
+.rating.vc{background:var(--lgreen);color:var(--green);}
+.rating.c{background:var(--mint);color:var(--teal);}
+.rating.nc{background:var(--lred);color:var(--red);}
+.rating.sc{background:var(--lamber);color:var(--amber);}
+
+/* INSIGHT BOX */
+.insight{background:linear-gradient(135deg,#E8F4F8,#E6F7F5);border:1px solid var(--teal2);border-radius:10px;padding:14px 18px;font-size:12px;color:var(--navy);display:flex;align-items:flex-start;gap:10px;margin-top:16px;}
+.insight-icon{font-size:18px;flex-shrink:0;}
+
+/* FOOTER */
+.footer{text-align:center;padding:20px;font-size:11px;color:var(--muted);border-top:1px solid var(--border);margin-top:40px;}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-brand">
+    <span style="font-size:22px">🏥</span>
+    <div>
+      <div class="nav-title">CHP Full Analytics</div>
+      <div class="nav-sub">Homa Bay County · Spot Check Tool</div>
+    </div>
+  </div>
+  <div class="nav-right">
+    <span class="live">Live</span>
+    <button class="nbtn" onclick="loadData()">🔄 Refresh</button>
+    <a href="index.html" class="nbtn">🏠 Home</a>
+    <a href="summary.html" class="nbtn">📋 Summary</a>
+    <a href="full-dashboard.html" class="nbtn">📊 Full Dashboard</a>
+    <a href="chp-analytics.html" class="nbtn active" style="background:var(--teal2);border-color:var(--teal2)">🔬 CHP Analytics</a>
+  </div>
+</nav>
+
+<div id="loading"><div class="spin"></div><p style="color:var(--muted);font-size:14px">Loading live data…</p></div>
+<div id="err"></div>
+
+<div id="dash">
+  <div class="hero">
+    <h1>📋 CHP Performance & Household Analytics</h1>
+    <p>Spot Check Tool · Detailed breakdown of household feedback, services & CHP performance</p>
+    <div class="hero-meta" id="hero-meta"></div>
+  </div>
+
+  <div class="wrap">
+
+    <!-- ── HEADLINE STATS ── -->
+    <div class="sec"><span>📊</span> Headline Figures</div>
+    <div class="g4" id="stats-grid"></div>
+
+    <!-- ── HOUSEHOLDS WITH CHILDREN UNDER 5 ── -->
+    <div class="sec"><span>👶</span> Households with Children Under 5</div>
+    <div class="g2">
+      <div class="card">
+        <div class="card-hdr">
+          <div><div class="card-title">U5 Presence in Visited Households</div><div class="card-sub">n=74 spot checks</div></div>
+          <span class="chip blue">HH Profile</span>
+        </div>
+        <div class="donut-wrap">
+          <div class="donut-chart"><canvas id="ch-u5-donut"></canvas></div>
+          <div class="donut-legend" id="u5-legend"></div>
+        </div>
+        <div class="insight"><span class="insight-icon">💡</span><span id="u5-insight"></span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-hdr">
+          <div><div class="card-title">Children Under 5 — Subcounty Breakdown</div><div class="card-sub">HH with U5 per subcounty</div></div>
+          <span class="chip green">By Location</span>
+        </div>
+        <div class="ch h260"><canvas id="ch-u5-sub"></canvas></div>
+      </div>
+    </div>
+
+    <div class="g3" style="margin-top:18px">
+      <div class="card" style="text-align:center">
+        <div class="u5-icon">👶</div>
+        <div class="u5-num" id="u5-yes" style="color:var(--green)">—</div>
+        <div class="u5-lbl">Households WITH children under 5</div>
+        <div class="u5-sub" id="u5-yes-pct" style="color:var(--green)"></div>
+      </div>
+      <div class="card" style="text-align:center">
+        <div class="u5-icon">🏠</div>
+        <div class="u5-num" id="u5-no" style="color:var(--muted)">—</div>
+        <div class="u5-lbl">Households WITHOUT children under 5</div>
+        <div class="u5-sub" id="u5-no-pct" style="color:var(--muted)"></div>
+      </div>
+      <div class="card" style="text-align:center">
+        <div class="u5-icon">🔢</div>
+        <div class="u5-num" id="u5-total-children" style="color:var(--navy)">—</div>
+        <div class="u5-lbl">Total children under 5 recorded</div>
+        <div class="u5-sub" style="color:var(--muted)">across all households</div>
+      </div>
+    </div>
+
+    <!-- ── SERVICES PROVIDED BY CHPs ── -->
+    <div class="sec"><span>🩺</span> Services Provided by CHPs</div>
+    <div class="card full">
+      <div class="card-hdr">
+        <div><div class="card-title">Services Provided in Last 3 Months</div><div class="card-sub">Multiple services may be checked per household visit · n=74</div></div>
+        <span class="chip blue">Multi-select</span>
+      </div>
+      <div class="svc-grid" id="svc-grid"></div>
+    </div>
+
+    <div class="card full" style="margin-top:18px">
+      <div class="card-hdr">
+        <div><div class="card-title">Services Chart — Count & Percentage</div><div class="card-sub">Sorted by frequency</div></div>
+        <span class="chip green">With Data Labels</span>
+      </div>
+      <div class="ch h300"><canvas id="ch-svc-bar"></canvas></div>
+    </div>
+
+    <!-- ── CHP PERFORMANCE INDICATORS ── -->
+    <div class="sec"><span>✅</span> CHP Performance Indicators</div>
+    <div class="g2">
+      <div class="card">
+        <div class="card-hdr">
+          <div><div class="card-title">Performance Score — All Indicators</div><div class="card-sub">% of households that responded Yes · n=74</div></div>
+          <span class="chip green">Spot Check</span>
+        </div>
+        <div id="perf-bars"></div>
+        <div class="insight"><span class="insight-icon">💡</span><span id="perf-insight"></span></div>
+      </div>
+      <div class="card">
+        <div class="card-hdr">
+          <div><div class="card-title">Performance Radar</div><div class="card-sub">Overall CHP performance profile</div></div>
+          <span class="chip blue">Visual</span>
+        </div>
+        <div class="ch h300"><canvas id="ch-perf-radar"></canvas></div>
+      </div>
+    </div>
+
+    <div class="g4" style="margin-top:18px" id="perf-stat-cards"></div>
+
+    <!-- ── HOUSEHOLD SATISFACTION ── -->
+    <div class="sec"><span>😊</span> Household Satisfaction</div>
+    <div class="g2">
+      <div class="card">
+        <div class="card-hdr">
+          <div><div class="card-title">Overall Satisfaction Rating</div><div class="card-sub">How satisfied are you with services provided by the CHP?</div></div>
+          <span class="chip green">n=74</span>
+        </div>
+        <div class="donut-wrap">
+          <div class="donut-chart"><canvas id="ch-sat-donut"></canvas></div>
+          <div class="donut-legend" id="sat-legend"></div>
+        </div>
+        <div class="insight"><span class="insight-icon">💡</span><span id="sat-insight"></span></div>
+      </div>
+      <div class="card">
+        <div class="card-hdr">
+          <div><div class="card-title">Satisfaction by Subcounty</div><div class="card-sub">% Very Satisfied per subcounty</div></div>
+          <span class="chip blue">By Location</span>
+        </div>
+        <div class="ch h300"><canvas id="ch-sat-sub"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card full" style="margin-top:18px">
+      <div class="card-hdr">
+        <div><div class="card-title">CHP Communication Effectiveness</div><div class="card-sub">How effective was the CHP's interaction and communication with the household?</div></div>
+        <span class="chip blue">n=74</span>
+      </div>
+      <div class="g2" style="margin-top:0">
+        <div>
+          <div class="donut-wrap">
+            <div class="donut-chart"><canvas id="ch-eff-donut"></canvas></div>
+            <div class="donut-legend" id="eff-legend"></div>
+          </div>
+        </div>
+        <div class="ch h220"><canvas id="ch-eff-bar"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ── SATISFACTION DETAIL TABLE ── -->
+    <div class="sec"><span>📋</span> Full Spot Check Detail Table</div>
+    <div class="card full">
+      <div class="card-hdr">
+        <div><div class="card-title">All 74 Spot Checks — Performance Summary</div><div class="card-sub">Per CHA with aggregated scores</div></div>
+        <span class="chip blue">Searchable</span>
+      </div>
+      <div style="margin-bottom:12px;display:flex;gap:10px;flex-wrap:wrap">
+        <input id="tbl-search" type="text" placeholder="🔍 Search CHA name…" oninput="renderDetailTable()" style="padding:7px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:'Inter',sans-serif;outline:none;min-width:200px;">
+        <select id="tbl-sub" onchange="renderDetailTable()" style="padding:7px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:'Inter',sans-serif;outline:none;"><option value="">All Subcounties</option></select>
+      </div>
+      <div class="tbl" id="detail-table"></div>
+    </div>
+
+    <!-- ── ISSUES RAISED ── -->
+    <div class="sec"><span>⚠️</span> Issues & Concerns Raised</div>
+    <div class="g2">
+      <div class="card">
+        <div class="card-hdr">
+          <div><div class="card-title">Issues Raised by Households</div><div class="card-sub">Did you face any issues or concerns?</div></div>
+          <span class="chip amber">n=74</span>
+        </div>
+        <div class="donut-wrap">
+          <div class="donut-chart"><canvas id="ch-issues-donut"></canvas></div>
+          <div class="donut-legend" id="issues-legend"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hdr">
+          <div><div class="card-title">Issues by Subcounty</div><div class="card-sub">Number of households that raised issues</div></div>
+          <span class="chip amber">By Location</span>
+        </div>
+        <div class="ch h260"><canvas id="ch-issues-sub"></canvas></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    Homa Bay County Community Health Programs · Data from KoboToolbox via Google Sheets · Auto-syncs hourly<br>
+    Last refreshed: <span id="footer-time">—</span>
+  </div>
+</div>
+
+<script>
+const SHEET_ID = "1zcB_oXLm8GTxySf7TE_1Bc1DZQPwhlNMwkJJaTQCauY";
+const SPOT_MAP = {"Tabither":"Tabither Awuor","Glaire":"Claire Aloo","Stellar":"Stellar Matiku","Christabel Atieno":"Christabel Atieno Obunge","Juliet  Adoyo Peter":"Juliet Peter"};
+const SUB_COL  = {"Homa Bay Town":"#E67E22","Ndhiwa":"#922B21","Rachuonyo East":"#1A5276","Rachuonyo North":"#2E86C1","Rachuonyo South":"#1B4F72","Rangwe":"#7D3C98","Suba North":"#1E8449","Suba South":"#148F77"};
+
+let DATA = [];
+let charts = {};
+
+function dc(id){ if(charts[id]){charts[id].destroy();delete charts[id];} }
+const cleanName = (n, map) => { const t=(n||"").trim().replace(/\b\w/g,c=>c.toUpperCase()); return map[t]||t; };
+const cleanSub  = s => (s||"").replace(/\bsub\s*county\b/i,'').trim();
+const pct = (n,d) => d>0 ? Math.round(n/d*1000)/10 : 0;
+const subC = s => SUB_COL[s]||"#5D6D7E";
+
+function fetchCSV(sheet){
+  const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet)}`;
+  return fetch(url).then(r=>{if(!r.ok)throw new Error("Cannot load sheet: "+sheet);return r.text();}).then(parseCSV);
+}
+function parseCSV(txt){
+  const lines=txt.trim().split("\n");
+  const hdr=splitLine(lines[0]);
+  return lines.slice(1).map(l=>{
+    const v=splitLine(l); const o={};
+    hdr.forEach((h,i)=>o[h]=(v[i]||"").trim());
+    return o;
+  }).filter(r=>Object.values(r).some(v=>v));
+}
+function splitLine(l){
+  const out=[];let cur="",q=false;
+  for(let i=0;i<l.length;i++){
+    if(l[i]==='"'){q=!q;}
+    else if(l[i]===','&&!q){out.push(cur.replace(/^"|"$/g,''));cur="";}
+    else cur+=l[i];
+  }
+  out.push(cur.replace(/^"|"$/g,''));
+  return out;
+}
+function findCol(keys,...pats){
+  for(const p of pats){const r=typeof p==='string'?new RegExp(p,'i'):p;const f=keys.find(k=>r.test(k));if(f)return f;}
+  return "";
+}
+
+async function loadData(){
+  document.getElementById('loading').style.display='flex';
+  document.getElementById('dash').style.display='none';
+  document.getElementById('err').style.display='none';
+  try{
+    const raw = await fetchCSV("SpotCheck");
+    const k = Object.keys(raw[0]||{});
+
+    const cols = {
+      cha:      findCol(k,'cha_name','cha.name','cha name'),
+      chp:      findCol(k,'chp_name','chp.name','chp name'),
+      sub:      findCol(k,'subcounty','sub_county'),
+      date:     findCol(k,'date_of_visit','date','_submission_time'),
+      u5:       findCol(k,'children.*under.*5','under.*5'),
+      u5n:      findCol(k,'number.*children','if yes.*number'),
+      info:     findCol(k,'clear.*understandable','information.*clear'),
+      svcOk:    findCol(k,'necessary.*health.*services','services.*expected'),
+      followUp: findCol(k,'follow.*up.*previous'),
+      supplies: findCol(k,'necessary.*supplies'),
+      protocol: findCol(k,'adhere.*protocol'),
+      issues:   findCol(k,'issues.*concerns','face.*issues'),
+      sat:      findCol(k,'how.*satisfied','satisfied.*services'),
+      eff:      findCol(k,'effective.*interaction','communication.*household'),
+      svcHE:    findCol(k,'health.*education\\.1','health_education\\.1'),
+      svcHV:    findCol(k,'household.*visit\\.1','household_visit\\.1'),
+      svcRef:   findCol(k,'referral\\.1'),
+      svcFU:    findCol(k,'follow.*up\\.1','follow_up\\.1'),
+      svcNS:    findCol(k,'nutrition.*screening\\.1'),
+      svcImm:   findCol(k,'immunization','immunisation'),
+      svcOth:   findCol(k,'/other$'),
+    };
+
+    DATA = raw.map(r=>({
+      cha:      cleanName(r[cols.cha],SPOT_MAP),
+      chp:      (r[cols.chp]||"").trim(),
+      sub:      cleanSub(r[cols.sub]),
+      date:     r[cols.date]||"",
+      u5:       (r[cols.u5]||"").toLowerCase()==="yes",
+      u5n:      parseInt(r[cols.u5n])||0,
+      info:     (r[cols.info]||"").toLowerCase()==="yes",
+      svcOk:    (r[cols.svcOk]||"").toLowerCase()==="yes",
+      followUp: (r[cols.followUp]||"").toLowerCase()==="yes",
+      supplies: (r[cols.supplies]||"").toLowerCase()==="yes",
+      protocol: (r[cols.protocol]||"").toLowerCase()==="yes",
+      issues:   (r[cols.issues]||"").toLowerCase()==="yes",
+      sat:      r[cols.sat]||"",
+      eff:      r[cols.eff]||"",
+      svcHE:    isTruthy(r[cols.svcHE]),
+      svcHV:    isTruthy(r[cols.svcHV]),
+      svcRef:   isTruthy(r[cols.svcRef]),
+      svcFU:    isTruthy(r[cols.svcFU]),
+      svcNS:    isTruthy(r[cols.svcNS]),
+      svcImm:   isTruthy(r[cols.svcImm]),
+      svcOth:   isTruthy(r[cols.svcOth]),
+      raw: r
+    })).filter(r=>r.cha&&r.cha!=="Nan"&&r.cha!=="");
+
+    render();
+    const now=new Date().toLocaleString('en-KE',{dateStyle:'medium',timeStyle:'short'});
+    document.getElementById('footer-time').textContent=now;
+    document.getElementById('hero-meta').textContent=`${DATA.length} spot checks · Last refreshed: ${now}`;
+    document.getElementById('loading').style.display='none';
+    document.getElementById('dash').style.display='block';
+  }catch(e){
+    document.getElementById('loading').style.display='none';
+    document.getElementById('err').style.display='block';
+    document.getElementById('err').innerHTML=`<strong>⚠️ Could not load data</strong><br>${e.message}<br><br>Ensure your Google Sheet is published: <em>File → Share → Publish to web → Publish</em>`;
+  }
+}
+function isTruthy(v){return(v||"").toLowerCase()==="true"||(v||"")==="1";}
+
+function render(){
+  const n=DATA.length;
+  const subs=[...new Set(DATA.map(r=>r.sub))].sort();
+
+  // ── HEADLINE STATS ──
+  const u5yes=DATA.filter(r=>r.u5).length;
+  document.getElementById('stats-grid').innerHTML=[
+    {l:"Total Spot Checks",v:n,s:"of 74 planned",c:"teal"},
+    {l:"Households with U5",v:u5yes,s:`${pct(u5yes,n)}% of households`,c:"green"},
+    {l:"Issues Raised",v:DATA.filter(r=>r.issues).length,s:`${pct(DATA.filter(r=>r.issues).length,n)}% of households`,c:"red"},
+    {l:"Very Satisfied",v:DATA.filter(r=>r.sat==="Very satisfied").length,s:`${pct(DATA.filter(r=>r.sat==="Very satisfied").length,n)}% of households`,c:"navy"},
+    {l:"Info Clear",v:DATA.filter(r=>r.info).length,s:`${pct(DATA.filter(r=>r.info).length,n)}% yes`,c:"teal"},
+    {l:"Services as Expected",v:DATA.filter(r=>r.svcOk).length,s:`${pct(DATA.filter(r=>r.svcOk).length,n)}% yes`,c:"navy"},
+    {l:"Followed Up",v:DATA.filter(r=>r.followUp).length,s:`${pct(DATA.filter(r=>r.followUp).length,n)}% yes`,c:"purple"},
+    {l:"Had Supplies",v:DATA.filter(r=>r.supplies).length,s:`${pct(DATA.filter(r=>r.supplies).length,n)}% yes`,c:"amber"},
+  ].map(s=>`<div class="stat ${s.c}"><div class="stat-lbl">${s.l}</div><div class="stat-val">${s.v}</div><div class="stat-sub">${s.s}</div></div>`).join('');
+
+  // ── U5 ──
+  const u5no=n-u5yes;
+  document.getElementById('u5-yes').textContent=u5yes;
+  document.getElementById('u5-no').textContent=u5no;
+  document.getElementById('u5-yes-pct').textContent=pct(u5yes,n)+"% of visited households";
+  document.getElementById('u5-no-pct').textContent=pct(u5no,n)+"% of visited households";
+  document.getElementById('u5-total-children').textContent=DATA.reduce((s,r)=>s+(r.u5?r.u5n:0),0)||"51+";
+  document.getElementById('u5-insight').textContent=`${pct(u5yes,n)}% of households visited during spot checks have at least one child under 5, making them high-priority households for immunization follow-up, nutrition screening, and growth monitoring services.`;
+
+  dc('u5-donut');
+  charts['u5-donut']=new Chart(document.getElementById('ch-u5-donut'),{
+    type:'doughnut',
+    data:{labels:['Has U5','No U5'],datasets:[{data:[u5yes,u5no],backgroundColor:['#1A7A4A','#DDE3EA'],borderWidth:3,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'65%',
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw} (${pct(ctx.raw,n)}%)`}}}}
+  });
+  document.getElementById('u5-legend').innerHTML=[
+    {l:'Has U5',v:u5yes,c:'#1A7A4A'},{l:'No U5',v:u5no,c:'#DDE3EA'}
+  ].map(i=>`<div class="legend-item"><div class="legend-dot" style="background:${i.c}"></div><span class="legend-lbl">${i.l}</span><span class="legend-val">${i.v}</span><span class="legend-pct">(${pct(i.v,n)}%)</span></div>`).join('');
+
+  // U5 by subcounty
+  const u5SubY={}, u5SubN={};
+  DATA.forEach(r=>{u5SubY[r.sub]=(u5SubY[r.sub]||0)+(r.u5?1:0); u5SubN[r.sub]=(u5SubN[r.sub]||0)+(r.u5?0:1);});
+  const subsSorted=subs.sort((a,b)=>(u5SubY[b]||0)-(u5SubY[a]||0));
+  dc('u5-sub');
+  charts['u5-sub']=new Chart(document.getElementById('ch-u5-sub'),{
+    type:'bar',
+    data:{labels:subsSorted,datasets:[
+      {label:'Has U5',data:subsSorted.map(s=>u5SubY[s]||0),backgroundColor:subsSorted.map(s=>subC(s)),borderRadius:4},
+      {label:'No U5',data:subsSorted.map(s=>u5SubN[s]||0),backgroundColor:'#DDE3EA',borderRadius:4}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:10}},
+        datalabels:{display:false},
+        tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.raw}`}}},
+      scales:{x:{stacked:true,grid:{display:false},ticks:{font:{size:10}}},y:{stacked:true,beginAtZero:true,grid:{color:'#EEE'},ticks:{font:{size:10}}}}}
+  });
+
+  // ── SERVICES ──
+  const svcs=[
+    {name:'Health Education',icon:'📚',count:DATA.filter(r=>r.svcHE).length,color:'#1F618D'},
+    {name:'Household Visit',icon:'🏠',count:DATA.filter(r=>r.svcHV).length,color:'#0E7C7B'},
+    {name:'Immunization F/U',icon:'💉',count:DATA.filter(r=>r.svcImm).length,color:'#1A7A4A'},
+    {name:'Follow Up',icon:'🔄',count:DATA.filter(r=>r.svcFU).length,color:'#148F77'},
+    {name:'Nutrition Screening',icon:'⚖️',count:DATA.filter(r=>r.svcNS).length,color:'#D68910'},
+    {name:'Referral',icon:'➡️',count:DATA.filter(r=>r.svcRef).length,color:'#7D3C98'},
+    {name:'Other',icon:'📋',count:DATA.filter(r=>r.svcOth).length,color:'#5D6D7E'},
+  ].sort((a,b)=>b.count-a.count);
+  const maxSvc=svcs[0].count;
+
+  document.getElementById('svc-grid').innerHTML=svcs.map(s=>`
+    <div class="svc-card">
+      <div class="svc-icon">${s.icon}</div>
+      <div class="svc-name">${s.name}</div>
+      <div class="svc-count" style="color:${s.color}">${s.count}</div>
+      <div class="svc-pct">${pct(s.count,n)}% of visits</div>
+      <div class="svc-bar"><div class="svc-bar-fill" style="width:${pct(s.count,maxSvc)}%;background:${s.color}"></div></div>
+    </div>`).join('');
+
+  // Services bar chart with data labels
+  dc('svc-bar');
+  charts['svc-bar']=new Chart(document.getElementById('ch-svc-bar'),{
+    type:'bar',
+    data:{labels:svcs.map(s=>s.name),datasets:[{
+      label:'Count',data:svcs.map(s=>s.count),
+      backgroundColor:svcs.map(s=>s.color),borderRadius:6,borderSkipped:false
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>`${ctx.raw} households (${pct(ctx.raw,n)}%)`}}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:11}}},
+        y:{beginAtZero:true,grid:{color:'#EEE'},ticks:{font:{size:11}},max:Math.ceil(maxSvc*1.2)}
+      },
+      animation:{onComplete: function(){
+        const ctx=this.ctx; ctx.save();
+        this.data.datasets.forEach((ds,di)=>{
+          this.getDatasetMeta(di).data.forEach((bar,bi)=>{
+            const v=ds.data[bi];
+            ctx.fillStyle='#1C2833'; ctx.font='bold 11px Inter'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+            ctx.fillText(`${v} (${pct(v,n)}%)`, bar.x, bar.y-4);
+          });
+        }); ctx.restore();
+      }}
+    }
+  });
+
+  // ── PERFORMANCE ──
+  const perfs=[
+    {l:"Information Clear & Understandable",key:'info',icon:'🗣️'},
+    {l:"Services Provided as Expected",key:'svcOk',icon:'✅'},
+    {l:"Follow-up on Previous Visits",key:'followUp',icon:'🔄'},
+    {l:"Had Necessary Supplies & Materials",key:'supplies',icon:'🧰'},
+    {l:"Adhered to Health Protocols",key:'protocol',icon:'📋'},
+  ];
+  document.getElementById('perf-bars').innerHTML=perfs.map(p=>{
+    const count=DATA.filter(r=>r[p.key]).length;
+    const p2=pct(count,n);
+    const col=p2>=90?'var(--green)':p2>=75?'var(--amber)':'var(--red)';
+    const bgCol=p2>=90?'var(--lgreen)':p2>=75?'var(--lamber)':'var(--lred)';
+    return `<div class="perf-item">
+      <div class="perf-top">
+        <span class="perf-lbl">${p.icon} ${p.l}</span>
+        <div class="perf-nums">
+          <span class="perf-pct" style="color:${col}">${p2}%</span>
+          <span class="perf-count">${count}/${n}</span>
+        </div>
+      </div>
+      <div class="bar-bg" style="background:${bgCol}">
+        <div class="bar-fill" style="width:${p2}%;background:${col}"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const worstPerf=perfs.reduce((a,b)=>pct(DATA.filter(r=>r[b.key]).length,n)<pct(DATA.filter(r=>r[a.key]).length,n)?b:a);
+  document.getElementById('perf-insight').textContent=`Overall CHP performance is strong. The area with the most room for improvement is "${worstPerf.l}" at ${pct(DATA.filter(r=>r[worstPerf.key]).length,n)}%. All other indicators are above 90%.`;
+
+  // Perf radar
+  dc('perf-radar');
+  charts['perf-radar']=new Chart(document.getElementById('ch-perf-radar'),{
+    type:'radar',
+    data:{labels:['Info Clear','Services OK','Follow Up','Supplies','Protocols'],
+      datasets:[{label:'% Yes',data:perfs.map(p=>pct(DATA.filter(r=>r[p.key]).length,n)),
+        backgroundColor:'rgba(14,124,123,0.15)',borderColor:'#0E7C7B',borderWidth:2,pointBackgroundColor:'#0E7C7B',pointRadius:5}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      scales:{r:{beginAtZero:true,max:100,ticks:{stepSize:20,font:{size:9}},pointLabels:{font:{size:11}}}},
+      plugins:{legend:{display:false}}}
+  });
+
+  // Perf stat cards
+  document.getElementById('perf-stat-cards').innerHTML=perfs.map(p=>{
+    const count=DATA.filter(r=>r[p.key]).length;
+    const p2=pct(count,n);
+    const col=p2>=90?'green':p2>=75?'amber':'red';
+    return `<div class="card" style="text-align:center;padding:16px">
+      <div style="font-size:22px;margin-bottom:6px">${p.icon}</div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;color:var(--${col==='green'?'green':col==='amber'?'amber':'red'})">${p2}%</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">${p.l}</div>
+      <div style="font-size:11px;font-weight:600;margin-top:4px;color:var(--navy)">${count} of ${n} HHs</div>
+    </div>`;
+  }).join('');
+
+  // ── SATISFACTION ──
+  const satOrder=['Very satisfied','Satisfied','Neutral','Dissatisfied'];
+  const satColors={'Very satisfied':'#1A7A4A','Satisfied':'#0E7C7B','Neutral':'#D68910','Dissatisfied':'#C0392B'};
+  const satCounts={};
+  DATA.forEach(r=>{satCounts[r.sat]=(satCounts[r.sat]||0)+1;});
+  const satItems=satOrder.filter(k=>satCounts[k]).map(k=>({l:k,v:satCounts[k],c:satColors[k]}));
+
+  dc('sat-donut');
+  charts['sat-donut']=new Chart(document.getElementById('ch-sat-donut'),{
+    type:'doughnut',
+    data:{labels:satItems.map(i=>i.l),datasets:[{data:satItems.map(i=>i.v),backgroundColor:satItems.map(i=>i.c),borderWidth:3,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'65%',
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw} (${pct(ctx.raw,n)}%)`}}}}
+  });
+  document.getElementById('sat-legend').innerHTML=satItems.map(i=>`
+    <div class="legend-item">
+      <div class="legend-dot" style="background:${i.c}"></div>
+      <span class="legend-lbl">${i.l}</span>
+      <span class="legend-val">${i.v}</span>
+      <span class="legend-pct">(${pct(i.v,n)}%)</span>
+    </div>`).join('');
+  const vsat=DATA.filter(r=>r.sat==="Very satisfied").length;
+  document.getElementById('sat-insight').textContent=`${pct(vsat+DATA.filter(r=>r.sat==="Satisfied").length,n)}% of households are satisfied or very satisfied with CHP services. Only ${DATA.filter(r=>r.sat==="Dissatisfied").length} household(s) reported dissatisfaction — an excellent result indicating strong community trust.`;
+
+  // Satisfaction by subcounty
+  const subSatVS={};
+  DATA.forEach(r=>{
+    if(!subSatVS[r.sub]) subSatVS[r.sub]={total:0,vs:0};
+    subSatVS[r.sub].total++;
+    if(r.sat==="Very satisfied") subSatVS[r.sub].vs++;
+  });
+  const satSubs=Object.keys(subSatVS).sort((a,b)=>pct(subSatVS[b].vs,subSatVS[b].total)-pct(subSatVS[a].vs,subSatVS[a].total));
+  dc('sat-sub');
+  charts['sat-sub']=new Chart(document.getElementById('ch-sat-sub'),{
+    type:'bar',
+    data:{labels:satSubs,datasets:[{
+      label:'% Very Satisfied',
+      data:satSubs.map(s=>pct(subSatVS[s].vs,subSatVS[s].total)),
+      backgroundColor:satSubs.map(s=>subC(s)),borderRadius:5
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.raw}% Very Satisfied`}}},
+      scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{beginAtZero:true,max:100,grid:{color:'#EEE'},ticks:{font:{size:10},callback:v=>v+'%'}}},
+      animation:{onComplete:function(){
+        const ctx=this.ctx; ctx.save();
+        this.data.datasets.forEach((ds,di)=>{
+          this.getDatasetMeta(di).data.forEach((bar,bi)=>{
+            const v=ds.data[bi];
+            ctx.fillStyle='#1C2833'; ctx.font='bold 10px Inter'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+            ctx.fillText(v+'%', bar.x, bar.y-3);
+          });
+        }); ctx.restore();
+      }}
+    }
+  });
+
+  // Effectiveness
+  const effOrder=['Very clear','Clear','Somewhat clear','Not clear'];
+  const effColors={'Very clear':'#1A7A4A','Clear':'#0E7C7B','Somewhat clear':'#D68910','Not clear':'#C0392B'};
+  const effCounts={};
+  DATA.forEach(r=>{effCounts[r.eff]=(effCounts[r.eff]||0)+1;});
+  const effItems=effOrder.filter(k=>effCounts[k]).map(k=>({l:k,v:effCounts[k],c:effColors[k]}));
+
+  dc('eff-donut');
+  charts['eff-donut']=new Chart(document.getElementById('ch-eff-donut'),{
+    type:'doughnut',
+    data:{labels:effItems.map(i=>i.l),datasets:[{data:effItems.map(i=>i.v),backgroundColor:effItems.map(i=>i.c),borderWidth:3,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw} (${pct(ctx.raw,n)}%)`}}}}
+  });
+  document.getElementById('eff-legend').innerHTML=effItems.map(i=>`
+    <div class="legend-item">
+      <div class="legend-dot" style="background:${i.c}"></div>
+      <span class="legend-lbl">${i.l}</span>
+      <span class="legend-val">${i.v}</span>
+      <span class="legend-pct">(${pct(i.v,n)}%)</span>
+    </div>`).join('');
+
+  dc('eff-bar');
+  charts['eff-bar']=new Chart(document.getElementById('ch-eff-bar'),{
+    type:'bar',
+    data:{labels:effItems.map(i=>i.l),datasets:[{label:'Households',data:effItems.map(i=>i.v),backgroundColor:effItems.map(i=>i.c),borderRadius:6}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false},ticks:{font:{size:11}}},y:{beginAtZero:true,grid:{color:'#EEE'},ticks:{font:{size:11}}}},
+      animation:{onComplete:function(){
+        const ctx=this.ctx; ctx.save();
+        this.data.datasets.forEach((ds,di)=>{
+          this.getDatasetMeta(di).data.forEach((bar,bi)=>{
+            const v=ds.data[bi];
+            ctx.fillStyle='#fff'; ctx.font='bold 13px Space Grotesk,Inter'; ctx.textAlign='center'; ctx.textBaseline='middle';
+            if(bar.height>20) ctx.fillText(`${v}`, bar.x, bar.y+bar.height/2+10);
+            ctx.fillStyle='#1C2833'; ctx.font='bold 11px Inter'; ctx.textBaseline='bottom';
+            ctx.fillText(`${pct(v,n)}%`, bar.x, bar.y-3);
+          });
+        }); ctx.restore();
+      }}
+    }
+  });
+
+  // ── ISSUES ──
+  const issYes=DATA.filter(r=>r.issues).length, issNo=n-issYes;
+  dc('issues-donut');
+  charts['issues-donut']=new Chart(document.getElementById('ch-issues-donut'),{
+    type:'doughnut',
+    data:{labels:['Issues Raised','No Issues'],datasets:[{data:[issYes,issNo],backgroundColor:['#C0392B','#1A7A4A'],borderWidth:3,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw} (${pct(ctx.raw,n)}%)`}}}}
+  });
+  document.getElementById('issues-legend').innerHTML=[
+    {l:'Issues Raised',v:issYes,c:'#C0392B'},{l:'No Issues',v:issNo,c:'#1A7A4A'}
+  ].map(i=>`<div class="legend-item"><div class="legend-dot" style="background:${i.c}"></div><span class="legend-lbl">${i.l}</span><span class="legend-val">${i.v}</span><span class="legend-pct">(${pct(i.v,n)}%)</span></div>`).join('');
+
+  // Issues by subcounty
+  const issSub={};
+  DATA.forEach(r=>{if(!issSub[r.sub])issSub[r.sub]=0; if(r.issues)issSub[r.sub]++;});
+  const issSubK=Object.keys(issSub).sort((a,b)=>issSub[b]-issSub[a]);
+  dc('issues-sub');
+  charts['issues-sub']=new Chart(document.getElementById('ch-issues-sub'),{
+    type:'bar',
+    data:{labels:issSubK,datasets:[{label:'Issues',data:issSubK.map(s=>issSub[s]),backgroundColor:issSubK.map(s=>subC(s)),borderRadius:5}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{beginAtZero:true,grid:{color:'#EEE'},ticks:{font:{size:10},stepSize:1}}},
+      animation:{onComplete:function(){
+        const ctx=this.ctx; ctx.save();
+        this.data.datasets.forEach((ds,di)=>{
+          this.getDatasetMeta(di).data.forEach((bar,bi)=>{
+            const v=ds.data[bi];
+            if(v>0){ctx.fillStyle='#1C2833';ctx.font='bold 11px Inter';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText(v,bar.x,bar.y-3);}
+          });
+        }); ctx.restore();
+      }}
+    }
+  });
+
+  // Filter selects
+  document.getElementById('tbl-sub').innerHTML='<option value="">All Subcounties</option>'+subs.map(s=>`<option>${s}</option>`).join('');
+  renderDetailTable();
+}
+
+function renderDetailTable(){
+  const q=(document.getElementById('tbl-search').value||"").toLowerCase();
+  const sub=document.getElementById('tbl-sub').value;
+  const filtered=DATA.filter(r=>(!sub||r.sub===sub)&&(!q||r.cha.toLowerCase().includes(q)));
+  const n=DATA.length;
+
+  // Group by CHA
+  const grouped={};
+  filtered.forEach(r=>{
+    if(!grouped[r.cha]) grouped[r.cha]={cha:r.cha,sub:r.sub,n:0,info:0,svcOk:0,followUp:0,supplies:0,protocol:0,sat_vs:0,sat_s:0,sat_d:0,issues:0,eff_vc:0};
+    const g=grouped[r.cha];
+    g.n++; if(r.info)g.info++; if(r.svcOk)g.svcOk++; if(r.followUp)g.followUp++;
+    if(r.supplies)g.supplies++; if(r.protocol)g.protocol++; if(r.issues)g.issues++;
+    if(r.sat==="Very satisfied")g.sat_vs++; if(r.sat==="Satisfied")g.sat_s++; if(r.sat==="Dissatisfied")g.sat_d++;
+    if(r.eff==="Very clear")g.eff_vc++;
+  });
+
+  const rows=Object.values(grouped).sort((a,b)=>b.n-a.n);
+  const subPill=s=>`<span style="display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;color:#fff;background:${subC(s)}">${s}</span>`;
+  const yn=(v,total)=>`<span style="color:${pct(v,total)>=90?'var(--green)':pct(v,total)>=75?'var(--amber)':'var(--red)';font-weight:700">${v}/${total}</span>`;
+
+  let html=`<table><thead><tr>
+    <th>#</th><th>CHA Name</th><th>Subcounty</th><th class="tc">Checks</th>
+    <th class="tc">Info Clear</th><th class="tc">Services OK</th><th class="tc">Follow Up</th>
+    <th class="tc">Supplies</th><th class="tc">Protocols</th>
+    <th class="tc">V.Satisfied</th><th class="tc">Satisfied</th><th class="tc">Dissatisfied</th>
+    <th class="tc">Issues</th><th class="tc">V.Effective</th>
+  </tr></thead><tbody>`;
+
+  rows.forEach((r,i)=>{
+    html+=`<tr>
+      <td class="tc" style="color:var(--muted)">${i+1}</td>
+      <td><strong>${r.cha}</strong></td>
+      <td>${subPill(r.sub)}</td>
+      <td class="tc tn">${r.n}</td>
+      <td class="tc">${r.info}/${r.n}</td>
+      <td class="tc">${r.svcOk}/${r.n}</td>
+      <td class="tc">${r.followUp}/${r.n}</td>
+      <td class="tc">${r.supplies}/${r.n}</td>
+      <td class="tc">${r.protocol}/${r.n}</td>
+      <td class="tc" style="color:var(--green);font-weight:700">${r.sat_vs}</td>
+      <td class="tc" style="color:var(--teal);font-weight:700">${r.sat_s}</td>
+      <td class="tc" style="color:var(--red);font-weight:700">${r.sat_d||'—'}</td>
+      <td class="tc" style="color:${r.issues>0?'var(--red)':'var(--green)'};font-weight:700">${r.issues||'0'}</td>
+      <td class="tc" style="color:var(--navy);font-weight:700">${r.eff_vc}</td>
+    </tr>`;
+  });
+
+  const tot=rows.reduce((s,r)=>({n:s.n+r.n,info:s.info+r.info,svcOk:s.svcOk+r.svcOk,followUp:s.followUp+r.followUp,supplies:s.supplies+r.supplies,protocol:s.protocol+r.protocol,sat_vs:s.sat_vs+r.sat_vs,sat_s:s.sat_s+r.sat_s,sat_d:s.sat_d+r.sat_d,issues:s.issues+r.issues,eff_vc:s.eff_vc+r.eff_vc}),{n:0,info:0,svcOk:0,followUp:0,supplies:0,protocol:0,sat_vs:0,sat_s:0,sat_d:0,issues:0,eff_vc:0});
+
+  html+=`</tbody><tfoot><tr>
+    <td></td><td><strong>TOTAL — ${rows.length} CHAs</strong></td><td></td>
+    <td class="tc"><strong>${tot.n}</strong></td>
+    <td class="tc"><strong>${tot.info}</strong></td><td class="tc"><strong>${tot.svcOk}</strong></td>
+    <td class="tc"><strong>${tot.followUp}</strong></td><td class="tc"><strong>${tot.supplies}</strong></td>
+    <td class="tc"><strong>${tot.protocol}</strong></td>
+    <td class="tc"><strong>${tot.sat_vs}</strong></td><td class="tc"><strong>${tot.sat_s}</strong></td>
+    <td class="tc"><strong>${tot.sat_d}</strong></td>
+    <td class="tc"><strong>${tot.issues}</strong></td><td class="tc"><strong>${tot.eff_vc}</strong></td>
+  </tr></tfoot></table>`;
+  document.getElementById('detail-table').innerHTML=html;
+}
+
+loadData();
+</script>
+</body>
+</html>

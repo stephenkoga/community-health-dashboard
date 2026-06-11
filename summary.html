@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Summary – CHP Dashboard · Homa Bay</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+:root{--navy:#0D2B4E;--teal:#0E7C7B;--teal2:#14A89A;--sky:#E8F4F8;--mint:#E6F7F5;--white:#fff;--gray:#F4F6F8;--text:#1C2833;--muted:#6B7A8D;--green:#1A7A4A;--lgreen:#E9F7EF;--red:#C0392B;--lred:#FDEDEC;--amber:#D68910;--lamber:#FEF9E7;--border:#DDE3EA;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;background:var(--gray);color:var(--text);}
+.nav{background:var(--navy);height:58px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:0 2px 16px rgba(0,0,0,.25);}
+.nav-brand{display:flex;align-items:center;gap:10px;}
+.nav-title{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;color:#fff;}
+.nav-sub{font-size:10px;color:rgba(255,255,255,.5);}
+.nav-right{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.live{background:var(--teal2);color:#fff;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;display:flex;align-items:center;gap:5px;}
+.live::before{content:'';width:6px;height:6px;background:#7FFFD4;border-radius:50%;animation:blink 1.5s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.nbtn{background:rgba(255,255,255,.1);color:#fff;font-size:11px;font-weight:500;padding:5px 12px;border-radius:6px;text-decoration:none;border:1px solid rgba(255,255,255,.2);cursor:pointer;transition:.2s;white-space:nowrap;}
+.nbtn:hover{background:rgba(255,255,255,.25);} .nbtn.active{background:var(--teal2);border-color:var(--teal2);}
+#loading{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;gap:16px;}
+.spin{width:44px;height:44px;border:4px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+#err{display:none;background:var(--lred);border:1px solid #F1948A;color:var(--red);padding:16px 24px;border-radius:12px;margin:24px;font-size:13px;}
+#dash{display:none;}
+.hero{background:linear-gradient(135deg,var(--navy) 0%,#1A4A7A 100%);padding:28px;color:#fff;}
+.hero h1{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;margin-bottom:4px;}
+.hero p{font-size:13px;color:rgba(255,255,255,.65);}
+.hero-meta{font-size:11px;color:rgba(255,255,255,.4);margin-top:6px;}
+.wrap{padding:24px;max-width:1400px;margin:0 auto;}
+.sec{font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:1.2px;margin:28px 0 14px;display:flex;align-items:center;gap:10px;}
+.sec::after{content:'';flex:1;height:1px;background:var(--border);}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+.g7{display:grid;grid-template-columns:repeat(7,1fr);gap:12px;}
+@media(max-width:1100px){.g4{grid-template-columns:1fr 1fr 1fr;}.g7{grid-template-columns:repeat(4,1fr);}}
+@media(max-width:800px){.g2,.g3,.g4{grid-template-columns:1fr 1fr;}.g7{grid-template-columns:1fr 1fr 1fr;}}
+@media(max-width:500px){.g2,.g3,.g4,.g7{grid-template-columns:1fr;}}
+.card{background:var(--white);border-radius:14px;padding:22px;border:1px solid var(--border);box-shadow:0 1px 4px rgba(0,0,0,.04);}
+.card.full{grid-column:1/-1;}
+.card-title{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;color:var(--navy);margin-bottom:4px;}
+.card-sub{font-size:11px;color:var(--muted);margin-bottom:16px;}
+.chip{font-size:10px;font-weight:600;padding:3px 9px;border-radius:20px;}
+.chip.blue{background:var(--sky);color:var(--teal);}
+.chip.green{background:var(--lgreen);color:var(--green);}
+/* KPI TILES */
+.kpi{border-radius:14px;padding:18px 16px;position:relative;overflow:hidden;border:1px solid var(--border);}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;}
+.kpi-lbl{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px;}
+.kpi-val{font-family:'Space Grotesk',sans-serif;font-size:32px;font-weight:700;color:var(--navy);line-height:1;}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:5px;}
+/* PERF */
+.perf-item{margin-bottom:16px;} .perf-item:last-child{margin-bottom:0;}
+.perf-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
+.perf-lbl{font-size:12px;font-weight:500;}
+.perf-pct{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;}
+.bar-bg{height:9px;background:var(--border);border-radius:5px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:5px;transition:width 1.2s ease;}
+/* LEGEND */
+.leg{display:flex;flex-direction:column;gap:9px;}
+.leg-row{display:flex;align-items:center;gap:8px;}
+.leg-dot{width:11px;height:11px;border-radius:3px;flex-shrink:0;}
+.leg-lbl{font-size:12px;flex:1;}
+.leg-val{font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;color:var(--navy);}
+.leg-pct{font-size:11px;color:var(--muted);}
+/* SUB TABLE */
+.tbl{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+thead th{background:var(--navy);color:#fff;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.4px;padding:10px 13px;text-align:left;white-space:nowrap;}
+tbody tr:nth-child(even){background:var(--gray);}
+tbody tr:hover{background:var(--sky);}
+tbody td{padding:9px 13px;border-bottom:1px solid var(--border);}
+.tc{text-align:center;} .tn{font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--navy);}
+tfoot td{background:var(--navy)!important;color:#fff!important;font-weight:700;}
+.ch{position:relative;} .ch.h220{height:220px;} .ch.h280{height:280px;} .ch.h320{height:320px;}
+.footer{text-align:center;padding:20px;font-size:11px;color:var(--muted);border-top:1px solid var(--border);margin-top:40px;}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-brand"><span style="font-size:22px">🏥</span><div><div class="nav-title">Community Health Programs</div><div class="nav-sub">Homa Bay County</div></div></div>
+  <div class="nav-right">
+    <span class="live">Live</span>
+    <button class="nbtn" onclick="loadData()">🔄 Refresh</button>
+    <a href="index.html" class="nbtn">🏠 Home</a>
+    <a href="summary.html" class="nbtn active">📋 Summary</a>
+    <a href="full-dashboard.html" class="nbtn">📊 Full Dashboard</a>
+    <a href="chp-analytics.html" class="nbtn">🔬 CHP Analytics</a>
+  </div>
+</nav>
+<div id="loading"><div class="spin"></div><p style="color:var(--muted);font-size:14px">Loading live data…</p></div>
+<div id="err"></div>
+<div id="dash">
+  <div class="hero">
+    <h1>📋 Program Summary</h1>
+    <p>Shadowing Tool & Spot Check Tool · Homa Bay County</p>
+    <div class="hero-meta" id="hero-meta"></div>
+  </div>
+  <div class="wrap">
+    <div class="sec">🔢 Key Figures</div>
+    <div class="g7" id="kpi-row"></div>
+
+    <div class="sec">🗺️ Activity by Subcounty</div>
+    <div class="card full">
+      <div class="card-title">Shadowings & Spot Checks per Subcounty</div>
+      <div class="card-sub">Both tools combined · colour-coded by subcounty</div>
+      <div class="ch h320"><canvas id="ch-sub"></canvas></div>
+    </div>
+
+    <div class="sec">✅ CHP Performance</div>
+    <div class="g2">
+      <div class="card">
+        <div class="card-title">Performance Indicators</div>
+        <div class="card-sub">% of spot checks answered Yes · n=74</div>
+        <div id="perf-bars"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Household Satisfaction</div>
+        <div class="card-sub">How satisfied are you with CHP services?</div>
+        <div style="display:flex;align-items:center;gap:20px;margin-top:8px">
+          <div style="flex:0 0 160px;height:160px;position:relative"><canvas id="ch-sat"></canvas></div>
+          <div class="leg" id="sat-leg"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">🩺 Services Provided</div>
+    <div class="card full">
+      <div class="card-title">Services Delivered by CHPs in Last 3 Months</div>
+      <div class="card-sub">With data labels · n=74 spot checks</div>
+      <div class="ch h220"><canvas id="ch-svc"></canvas></div>
+    </div>
+
+    <div class="sec">📋 Subcounty Breakdown</div>
+    <div class="card full">
+      <div class="card-title">Full Subcounty Summary</div>
+      <div class="tbl" id="sub-tbl"></div>
+    </div>
+
+    <div class="sec">🧑‍⚕️ Top CHAs by Activity</div>
+    <div class="g2">
+      <div class="card">
+        <div class="card-title">Top 10 — Shadowings</div>
+        <div class="ch h280"><canvas id="ch-cha-sh"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Top 10 — Spot Checks</div>
+        <div class="ch h280"><canvas id="ch-cha-sp"></canvas></div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">Homa Bay County CHP · Live from KoboToolbox via Google Sheets · Refreshed: <span id="ftime">—</span></div>
+</div>
+<script>
+const SHEET_ID="1zcB_oXLm8GTxySf7TE_1Bc1DZQPwhlNMwkJJaTQCauY";
+const SHADOW_MAP={"Calvince Wanyancha":"Calvine Wanyancha","Calvinece Wanyancha":"Calvine Wanyancha","Calcince  Wanyach":"Calvine Wanyancha","Peninah Omuga":"Penina Omuga","Omuga Penina":"Penina Omuga","Diana Anyango":"Diana Judith's Anyango","Dency":"Dency Opinde","Jane Atieno  Otae":"Jane Atieno Otae","Jackline  Achieng":"Jackline Achieng"};
+const SPOT_MAP={"Tabither":"Tabither Awuor","Glaire":"Claire Aloo","Stellar":"Stellar Matiku","Christabel Atieno":"Christabel Atieno Obunge","Juliet  Adoyo Peter":"Juliet Peter"};
+const SUB_COLORS={"Homa Bay Town":"#E67E22","Ndhiwa":"#922B21","Rachuonyo East":"#1A5276","Rachuonyo North":"#2E86C1","Rachuonyo South":"#1B4F72","Rangwe":"#7D3C98","Suba North":"#1E8449","Suba South":"#148F77"};
+function subC(s){return SUB_COLORS[s]||"#5D6D7E";}
+function subPill(s){return`<span style="display:inline-block;font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;color:#fff;background:${subC(s)}">${s}</span>`;}
+let charts={};
+function dc(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+const cleanName=(n,map)=>{const t=(n||"").trim().replace(/\b\w/g,c=>c.toUpperCase());return map[t]||t;};
+const cleanSub=s=>(s||"").replace(/\bsub\s*county\b/i,'').trim();
+const pct=(n,d)=>d>0?Math.round(n/d*1000)/10:0;
+function isTruthy(v){return(v||"").toLowerCase()==="true"||(v||"")==="1";}
+function fetchCSV(sheet){
+  const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet)}`;
+  return fetch(url).then(r=>{if(!r.ok)throw new Error("Cannot load: "+sheet);return r.text();}).then(parseCSV);
+}
+function parseCSV(txt){
+  const lines=txt.trim().split("\n");const hdr=sl(lines[0]);
+  return lines.slice(1).map(l=>{const v=sl(l);const o={};hdr.forEach((h,i)=>o[h]=(v[i]||"").trim());return o;}).filter(r=>Object.values(r).some(v=>v));
+}
+function sl(l){const out=[];let cur="",q=false;for(let i=0;i<l.length;i++){if(l[i]==='"'){q=!q;}else if(l[i]===','&&!q){out.push(cur.replace(/^"|"$/g,''));cur="";}else cur+=l[i];}out.push(cur.replace(/^"|"$/g,''));return out;}
+function findCol(k,...p){for(const x of p){const r=typeof x==='string'?new RegExp(x,'i'):x;const f=k.find(c=>r.test(c));if(f)return f;}return"";}
+function dlabels(chart,fmt){
+  const ctx=chart.ctx;ctx.save();
+  chart.data.datasets.forEach((ds,di)=>{chart.getDatasetMeta(di).data.forEach((bar,bi)=>{
+    const v=ds.data[bi];if(!v)return;const label=fmt?fmt(v):`${v}`;
+    ctx.fillStyle='#1C2833';ctx.font='bold 10px Inter';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText(label,bar.x,bar.y-3);
+  });});ctx.restore();
+}
+
+async function loadData(){
+  document.getElementById('loading').style.display='flex';
+  document.getElementById('dash').style.display='none';
+  document.getElementById('err').style.display='none';
+  try{
+    const[rawS,rawP]=await Promise.all([fetchCSV("Shadowing"),fetchCSV("SpotCheck")]);
+    const sk=Object.keys(rawS[0]||{});const pk=Object.keys(rawP[0]||{});
+    const SC={cha:findCol(sk,'cha_name','cha.name'),sub:findCol(sk,'subcounty')};
+    const PC={cha:findCol(pk,'cha_name','cha.name'),chp:findCol(pk,'chp_name','chp.name'),sub:findCol(pk,'subcounty'),
+      info:findCol(pk,'clear.*understandable'),svcOk:findCol(pk,'necessary.*health.*services'),
+      followUp:findCol(pk,'follow.*up.*previous'),supplies:findCol(pk,'necessary.*supplies'),
+      protocol:findCol(pk,'adhere.*protocol'),sat:findCol(pk,'how.*satisfied'),
+      svcHE:findCol(pk,'health.*education\\.1'),svcHV:findCol(pk,'household.*visit\\.1'),
+      svcRef:findCol(pk,'referral\\.1'),svcFU:findCol(pk,'follow.*up\\.1'),
+      svcNS:findCol(pk,'nutrition.*screening\\.1'),svcImm:findCol(pk,'immunization','immunisation'),
+      svcOth:findCol(pk,'/other$')};
+
+    const SH=rawS.map(r=>({cha:cleanName(r[SC.cha],SHADOW_MAP),sub:cleanSub(r[SC.sub])})).filter(r=>r.cha&&r.cha!=="Nan");
+    const SP=rawP.map(r=>({cha:cleanName(r[PC.cha],SPOT_MAP),chp:(r[PC.chp]||"").trim(),sub:cleanSub(r[PC.sub]),
+      info:(r[PC.info]||"").toLowerCase()==="yes",svcOk:(r[PC.svcOk]||"").toLowerCase()==="yes",
+      followUp:(r[PC.followUp]||"").toLowerCase()==="yes",supplies:(r[PC.supplies]||"").toLowerCase()==="yes",
+      protocol:(r[PC.protocol]||"").toLowerCase()==="yes",sat:r[PC.sat]||"",
+      svcHE:isTruthy(r[PC.svcHE]),svcHV:isTruthy(r[PC.svcHV]),svcRef:isTruthy(r[PC.svcRef]),
+      svcFU:isTruthy(r[PC.svcFU]),svcNS:isTruthy(r[PC.svcNS]),svcImm:isTruthy(r[PC.svcImm]),svcOth:isTruthy(r[PC.svcOth])
+    })).filter(r=>r.cha&&r.cha!=="Nan");
+
+    const n=SP.length,m=SH.length;
+    const now=new Date().toLocaleString('en-KE',{dateStyle:'medium',timeStyle:'short'});
+    document.getElementById('hero-meta').textContent=`${m} shadowings · ${n} spot checks · Refreshed ${now}`;
+    document.getElementById('ftime').textContent=now;
+
+    // KPIs
+    const kpis=[
+      {l:"Shadowings",v:m,bg:"#0D2B4E"},
+      {l:"Spot Checks",v:n,bg:"#0E7C7B"},
+      {l:"CHAs (Shadow)",v:new Set(SH.map(r=>r.cha)).size,bg:"#7D3C98"},
+      {l:"CHAs (Spot)",v:new Set(SP.map(r=>r.cha)).size,bg:"#1E8449"},
+      {l:"CHPs Checked",v:new Set(SP.map(r=>r.chp).filter(Boolean)).size,bg:"#D68910"},
+      {l:"Subcounties",v:new Set([...SH.map(r=>r.sub),...SP.map(r=>r.sub)]).size,bg:"#148F77"},
+      {l:"Issues Raised",v:SP.filter(r=>r.issues).length,bg:"#C0392B"},
+    ];
+    document.getElementById('kpi-row').innerHTML=kpis.map(k=>`
+      <div class="kpi" style="background:${k.bg}08;border-color:${k.bg}33;">
+        <div style="position:absolute;top:0;left:0;right:0;height:4px;background:${k.bg};border-radius:14px 14px 0 0"></div>
+        <div class="kpi-lbl">${k.l}</div>
+        <div class="kpi-val" style="color:${k.bg}">${k.v}</div>
+      </div>`).join('');
+
+    // Subcounty grouped bar
+    const shSub={},spSub={};
+    SH.forEach(r=>{shSub[r.sub]=(shSub[r.sub]||0)+1;});
+    SP.forEach(r=>{spSub[r.sub]=(spSub[r.sub]||0)+1;});
+    const allSubs=[...new Set([...Object.keys(shSub),...Object.keys(spSub)])].sort((a,b)=>((shSub[b]||0)+(spSub[b]||0))-((shSub[a]||0)+(spSub[a]||0)));
+    dc('sub');
+    charts['sub']=new Chart(document.getElementById('ch-sub'),{
+      type:'bar',
+      data:{labels:allSubs,datasets:[
+        {label:'Shadowings',data:allSubs.map(s=>shSub[s]||0),backgroundColor:allSubs.map(s=>subC(s)),borderRadius:5},
+        {label:'Spot Checks',data:allSubs.map(s=>spSub[s]||0),backgroundColor:allSubs.map(s=>subC(s)+'88'),borderRadius:5}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{position:'top',labels:{font:{size:11},boxWidth:12}}},
+        scales:{x:{grid:{display:false},ticks:{font:{size:11}}},y:{beginAtZero:true,grid:{color:'#EEE'},ticks:{font:{size:11}}}},
+        animation:{onComplete:function(){dlabels(this);}}
+      }
+    });
+
+    // Perf bars
+    const perfs=[
+      {l:"Info Clear & Understandable",k:'info'},{l:"Services as Expected",k:'svcOk'},
+      {l:"Follow-up on Previous Visits",k:'followUp'},{l:"Had Necessary Supplies",k:'supplies'},
+      {l:"Adhered to Protocols",k:'protocol'}
+    ];
+    document.getElementById('perf-bars').innerHTML=perfs.map(p=>{
+      const cnt=SP.filter(r=>r[p.k]).length;const p2=pct(cnt,n);
+      const col=p2>=90?'var(--green)':p2>=75?'var(--amber)':'var(--red)';
+      return`<div class="perf-item"><div class="perf-row"><span class="perf-lbl">${p.l}</span><span class="perf-pct" style="color:${col}">${p2}%</span></div><div class="bar-bg"><div class="bar-fill" style="width:${p2}%;background:${col}"></div></div></div>`;
+    }).join('');
+
+    // Satisfaction donut
+    const satOrder=['Very satisfied','Satisfied','Neutral','Dissatisfied'];
+    const satCol={'Very satisfied':'#1A7A4A','Satisfied':'#0E7C7B','Neutral':'#D68910','Dissatisfied':'#C0392B'};
+    const satC={};SP.forEach(r=>{satC[r.sat]=(satC[r.sat]||0)+1;});
+    const satItems=satOrder.filter(k=>satC[k]).map(k=>({l:k,v:satC[k],c:satCol[k]}));
+    dc('sat');
+    charts['sat']=new Chart(document.getElementById('ch-sat'),{
+      type:'doughnut',data:{labels:satItems.map(i=>i.l),datasets:[{data:satItems.map(i=>i.v),backgroundColor:satItems.map(i=>i.c),borderWidth:2,borderColor:'#fff'}]},
+      options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw} (${pct(ctx.raw,n)}%)`}}}}
+    });
+    document.getElementById('sat-leg').innerHTML=satItems.map(i=>`
+      <div class="leg-row"><div class="leg-dot" style="background:${i.c}"></div><span class="leg-lbl">${i.l}</span><span class="leg-val">${i.v}</span><span class="leg-pct">(${pct(i.v,n)}%)</span></div>`).join('');
+
+    // Services bar
+    const svcs=[
+      {l:'Health Education',v:SP.filter(r=>r.svcHE).length},{l:'Household Visit',v:SP.filter(r=>r.svcHV).length},
+      {l:'Immunization F/U',v:SP.filter(r=>r.svcImm).length},{l:'Follow Up',v:SP.filter(r=>r.svcFU).length},
+      {l:'Nutrition Screening',v:SP.filter(r=>r.svcNS).length},{l:'Referral',v:SP.filter(r=>r.svcRef).length},
+      {l:'Other',v:SP.filter(r=>r.svcOth).length}
+    ].sort((a,b)=>b.v-a.v);
+    const svcCols=['#1F618D','#0E7C7B','#1A7A4A','#148F77','#D68910','#7D3C98','#5D6D7E'];
+    dc('svc');
+    charts['svc']=new Chart(document.getElementById('ch-svc'),{
+      type:'bar',data:{labels:svcs.map(s=>s.l),datasets:[{data:svcs.map(s=>s.v),backgroundColor:svcCols,borderRadius:6}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.raw} (${pct(ctx.raw,n)}%)`}}},
+        scales:{x:{grid:{display:false},ticks:{font:{size:11}}},y:{beginAtZero:true,grid:{color:'#EEE'},ticks:{font:{size:11}}}},
+        animation:{onComplete:function(){dlabels(this,v=>`${v} (${pct(v,n)}%)`);}}
+      }
+    });
+
+    // Subcounty table
+    const grandSh=m,grandSp=n;
+    let tbl=`<table><thead><tr><th>#</th><th>Subcounty</th><th class="tc">Shadowings</th><th class="tc">Spot Checks</th><th class="tc">Total</th><th class="tc">% Share</th><th class="tc">CHAs (Shadow)</th><th class="tc">CHAs (Spot)</th></tr></thead><tbody>`;
+    const grand=allSubs.reduce((s,sub)=>(shSub[sub]||0)+(spSub[sub]||0)+s,0);
+    allSubs.forEach((sub,i)=>{
+      const sh=shSub[sub]||0,sp=spSub[sub]||0,tot=sh+sp;
+      const chaSh=new Set(SH.filter(r=>r.sub===sub).map(r=>r.cha)).size;
+      const chaSp=new Set(SP.filter(r=>r.sub===sub).map(r=>r.cha)).size;
+      tbl+=`<tr><td class="tc" style="color:var(--muted)">${i+1}</td><td>${subPill(sub)}&nbsp;${sub}</td><td class="tc tn">${sh}</td><td class="tc tn">${sp}</td><td class="tc tn">${tot}</td><td class="tc">${pct(tot,grand)}%</td><td class="tc">${chaSh}</td><td class="tc">${chaSp}</td></tr>`;
+    });
+    tbl+=`</tbody><tfoot><tr><td></td><td>TOTAL</td><td class="tc">${grandSh}</td><td class="tc">${grandSp}</td><td class="tc">${grandSh+grandSp}</td><td class="tc">100%</td><td></td><td></td></tr></tfoot></table>`;
+    document.getElementById('sub-tbl').innerHTML=tbl;
+
+    // Top CHA charts
+    const shCHA={},shSub2={};
+    SH.forEach(r=>{shCHA[r.cha]=(shCHA[r.cha]||0)+1;shSub2[r.cha]=r.sub;});
+    const topSh=Object.entries(shCHA).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    dc('cha-sh');
+    charts['cha-sh']=new Chart(document.getElementById('ch-cha-sh'),{
+      type:'bar',data:{labels:topSh.map(t=>t[0].split(' ').slice(0,2).join(' ')),
+        datasets:[{data:topSh.map(t=>t[1]),backgroundColor:topSh.map(t=>subC(shSub2[t[0]]||"")),borderRadius:4}]},
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+        scales:{x:{beginAtZero:true,grid:{color:'#EEE'},ticks:{font:{size:10}}},y:{grid:{display:false},ticks:{font:{size:10}}}},
+        animation:{onComplete:function(){dlabels(this);}}
+      }
+    });
+
+    const spCHA={},spSub2={};
+    SP.forEach(r=>{spCHA[r.cha]=(spCHA[r.cha]||0)+1;spSub2[r.cha]=r.sub;});
+    const topSp=Object.entries(spCHA).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    dc('cha-sp');
+    charts['cha-sp']=new Chart(document.getElementById('ch-cha-sp'),{
+      type:'bar',data:{labels:topSp.map(t=>t[0].split(' ').slice(0,2).join(' ')),
+        datasets:[{data:topSp.map(t=>t[1]),backgroundColor:topSp.map(t=>subC(spSub2[t[0]]||"")),borderRadius:4}]},
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+        scales:{x:{beginAtZero:true,grid:{color:'#EEE'},ticks:{font:{size:10}}},y:{grid:{display:false},ticks:{font:{size:10}}}},
+        animation:{onComplete:function(){dlabels(this);}}
+      }
+    });
+
+    document.getElementById('loading').style.display='none';
+    document.getElementById('dash').style.display='block';
+  }catch(e){
+    document.getElementById('loading').style.display='none';
+    document.getElementById('err').style.display='block';
+    document.getElementById('err').innerHTML=`<strong>⚠️ Cannot load data</strong><br>${e.message}<br><br>Make sure your Google Sheet is published: <em>File → Share → Publish to web → Publish</em>`;
+  }
+}
+loadData();
+</script>
+</body>
+</html>
